@@ -1,0 +1,12 @@
+services:
+  spark:
+    image: spark:4.1.1-python3
+    user: root
+    working_dir: /app
+    volumes:
+      - ./jobs:/app/jobs
+      - ./scripts:/app/scripts
+      - ./data:/app/data
+      - ./results:/app/results
+    ports:
+      - '4040:4040'
