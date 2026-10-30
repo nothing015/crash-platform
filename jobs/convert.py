@@ -1,0 +1,77 @@
+import time
+import json
+import subprocess
+from pyspark.sql import SparkSession
+from common import get_cleaned_crashes, write_metrics
+
+spark = SparkSession.builder.appName('part1_convert').getOrCreate()
+
+# 1. Prepare Data & Write Metrics (Step 3)
+df = get_cleaned_crashes(spark)
+write_metrics(df)
+
+# 2. Convert Data to Parquet and ORC (Step 4)
+# Use a static partition count (e.g., 8) for a fair format comparison
+df_repartitioned = df.repartition(8)
+
+print("Writing Parquet...")
+start_time = time.perf_counter()
+(df_repartitioned.write
+    .mode('overwrite')
+    .option('compression', 'snappy')
+    .parquet('/app/data/lake/crashes_parquet'))
+parquet_time = time.perf_counter() - start_time
+print(f"Parquet write took {parquet_time:.2f} seconds")
+
+print("Writing ORC...")
+start_time = time.perf_counter()
+(df_repartitioned.write
+    .mode('overwrite')
+    .option('compression', 'snappy')
+    .orc('/app/data/lake/crashes_orc'))
+orc_time = time.perf_counter() - start_time
+print(f"ORC write took {orc_time:.2f} seconds")
+
+# 3. Write 100K Sample for Ali (Part 2)
+print("Writing 100K sorted sample for Part 2...")
+(df.orderBy('crash_ts')
+    .limit(100000)
+    .write
+    .mode('overwrite')
+    .option('compression', 'snappy')
+    .parquet('/app/data/lake/sample_parquet'))
+
+# 4. Verify Row Counts 
+print("Verifying row counts...")
+csv_count = spark.read.csv('/app/data/raw/crashes.csv', header=True).count()
+parquet_count = spark.read.parquet('/app/data/lake/crashes_parquet').count()
+orc_count = spark.read.orc('/app/data/lake/crashes_orc').count()
+
+print("=" * 40)
+print(f"CSV Row Count:     {csv_count}")
+print(f"Parquet Row Count: {parquet_count}")
+print(f"ORC Row Count:     {orc_count}")
+print("=" * 40)
+
+assert csv_count == parquet_count == orc_count, "Row counts do not match!"
+
+# 5. Measure Directory Sizes
+def get_dir_size(path):
+    try:
+        result = subprocess.run(['du', '-sb', path], capture_output=True, text=True, check=True)
+        return int(result.stdout.split()[0])
+    except Exception as e:
+        print(f"Error getting size for {path}: {e}")
+        return 0
+
+sizes = {
+    "csv_bytes": get_dir_size('/app/data/raw/crashes.csv'),
+    "parquet_bytes": get_dir_size('/app/data/lake/crashes_parquet'),
+    "orc_bytes": get_dir_size('/app/data/lake/crashes_orc'),
+    "rows_verified": csv_count
+}
+
+with open('/app/results/format_sizes.json', 'w') as f:
+    json.dump(sizes, f, indent=2)
+
+print("Format sizes saved to /app/results/format_sizes.json")
