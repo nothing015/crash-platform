@@ -1,0 +1,168 @@
+===== Layout None: Q1 for 2023 =====
+== Physical Plan ==
+AdaptiveSparkPlan (8)
++- TakeOrderedAndProject (7)
+   +- HashAggregate (6)
+      +- Exchange (5)
+         +- HashAggregate (4)
+            +- Project (3)
+               +- Filter (2)
+                  +- Scan parquet  (1)
+
+
+(1) Scan parquet 
+Output [2]: [on_street_name#10083, crash_year#10106]
+Batched: true
+Location: InMemoryFileIndex [file:/app/data/layouts_parquet/None]
+PushedFilters: [IsNotNull(crash_year), EqualTo(crash_year,2023), IsNotNull(on_street_name)]
+ReadSchema: struct<on_street_name:string,crash_year:int>
+
+(2) Filter
+Input [2]: [on_street_name#10083, crash_year#10106]
+Condition : (((isnotnull(crash_year#10106) AND (crash_year#10106 = 2023)) AND isnotnull(on_street_name#10083)) AND NOT (trim(on_street_name#10083, None) = ))
+
+(3) Project
+Output [1]: [on_street_name#10083]
+Input [2]: [on_street_name#10083, crash_year#10106]
+
+(4) HashAggregate
+Input [1]: [on_street_name#10083]
+Keys [1]: [on_street_name#10083]
+Functions [1]: [partial_count(1)]
+Aggregate Attributes [1]: [count#11685L]
+Results [2]: [on_street_name#10083, count#11686L]
+
+(5) Exchange
+Input [2]: [on_street_name#10083, count#11686L]
+Arguments: hashpartitioning(on_street_name#10083, 200), ENSURE_REQUIREMENTS, [plan_id=3679]
+
+(6) HashAggregate
+Input [2]: [on_street_name#10083, count#11686L]
+Keys [1]: [on_street_name#10083]
+Functions [1]: [count(1)]
+Aggregate Attributes [1]: [count(1)#11684L]
+Results [2]: [on_street_name#10083, count(1)#11684L AS count#11651L]
+
+(7) TakeOrderedAndProject
+Input [2]: [on_street_name#10083, count#11651L]
+Arguments: 10, [count#11651L DESC NULLS LAST, on_street_name#10083 ASC NULLS FIRST], [on_street_name#10083, count#11651L]
+
+(8) AdaptiveSparkPlan
+Output [2]: [on_street_name#10083, count#11651L]
+Arguments: isFinalPlan=false
+
+
+
+
+===== Layout Year: Q1 for 2023 =====
+== Physical Plan ==
+AdaptiveSparkPlan (8)
++- TakeOrderedAndProject (7)
+   +- HashAggregate (6)
+      +- Exchange (5)
+         +- HashAggregate (4)
+            +- Project (3)
+               +- Filter (2)
+                  +- Scan parquet  (1)
+
+
+(1) Scan parquet 
+Output [2]: [on_street_name#10608, crash_year#10632]
+Batched: true
+Location: InMemoryFileIndex [file:/app/data/layouts_parquet/Year]
+PartitionFilters: [isnotnull(crash_year#10632), (crash_year#10632 = 2023)]
+PushedFilters: [IsNotNull(on_street_name)]
+ReadSchema: struct<on_street_name:string>
+
+(2) Filter
+Input [2]: [on_street_name#10608, crash_year#10632]
+Condition : (isnotnull(on_street_name#10608) AND NOT (trim(on_street_name#10608, None) = ))
+
+(3) Project
+Output [1]: [on_street_name#10608]
+Input [2]: [on_street_name#10608, crash_year#10632]
+
+(4) HashAggregate
+Input [1]: [on_street_name#10608]
+Keys [1]: [on_street_name#10608]
+Functions [1]: [partial_count(1)]
+Aggregate Attributes [1]: [count#11721L]
+Results [2]: [on_street_name#10608, count#11722L]
+
+(5) Exchange
+Input [2]: [on_street_name#10608, count#11722L]
+Arguments: hashpartitioning(on_street_name#10608, 200), ENSURE_REQUIREMENTS, [plan_id=3700]
+
+(6) HashAggregate
+Input [2]: [on_street_name#10608, count#11722L]
+Keys [1]: [on_street_name#10608]
+Functions [1]: [count(1)]
+Aggregate Attributes [1]: [count(1)#11720L]
+Results [2]: [on_street_name#10608, count(1)#11720L AS count#11687L]
+
+(7) TakeOrderedAndProject
+Input [2]: [on_street_name#10608, count#11687L]
+Arguments: 10, [count#11687L DESC NULLS LAST, on_street_name#10608 ASC NULLS FIRST], [on_street_name#10608, count#11687L]
+
+(8) AdaptiveSparkPlan
+Output [2]: [on_street_name#10608, count#11687L]
+Arguments: isFinalPlan=false
+
+
+
+
+===== Layout YearMonth: Q1 for 2023 =====
+== Physical Plan ==
+AdaptiveSparkPlan (8)
++- TakeOrderedAndProject (7)
+   +- HashAggregate (6)
+      +- Exchange (5)
+         +- HashAggregate (4)
+            +- Project (3)
+               +- Filter (2)
+                  +- Scan parquet  (1)
+
+
+(1) Scan parquet 
+Output [3]: [on_street_name#11133, crash_year#11156, crash_month#11157]
+Batched: true
+Location: InMemoryFileIndex [file:/app/data/layouts_parquet/YearMonth]
+PartitionFilters: [isnotnull(crash_year#11156), (crash_year#11156 = 2023)]
+PushedFilters: [IsNotNull(on_street_name)]
+ReadSchema: struct<on_street_name:string>
+
+(2) Filter
+Input [3]: [on_street_name#11133, crash_year#11156, crash_month#11157]
+Condition : (isnotnull(on_street_name#11133) AND NOT (trim(on_street_name#11133, None) = ))
+
+(3) Project
+Output [1]: [on_street_name#11133]
+Input [3]: [on_street_name#11133, crash_year#11156, crash_month#11157]
+
+(4) HashAggregate
+Input [1]: [on_street_name#11133]
+Keys [1]: [on_street_name#11133]
+Functions [1]: [partial_count(1)]
+Aggregate Attributes [1]: [count#11757L]
+Results [2]: [on_street_name#11133, count#11758L]
+
+(5) Exchange
+Input [2]: [on_street_name#11133, count#11758L]
+Arguments: hashpartitioning(on_street_name#11133, 200), ENSURE_REQUIREMENTS, [plan_id=3721]
+
+(6) HashAggregate
+Input [2]: [on_street_name#11133, count#11758L]
+Keys [1]: [on_street_name#11133]
+Functions [1]: [count(1)]
+Aggregate Attributes [1]: [count(1)#11756L]
+Results [2]: [on_street_name#11133, count(1)#11756L AS count#11723L]
+
+(7) TakeOrderedAndProject
+Input [2]: [on_street_name#11133, count#11723L]
+Arguments: 10, [count#11723L DESC NULLS LAST, on_street_name#11133 ASC NULLS FIRST], [on_street_name#11133, count#11723L]
+
+(8) AdaptiveSparkPlan
+Output [2]: [on_street_name#11133, count#11723L]
+Arguments: isFinalPlan=false
+
+

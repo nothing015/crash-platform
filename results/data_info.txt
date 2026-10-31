@@ -1,3 +1,2 @@
-]633;E;{   echo "Download Date: $(date)"\x3b   echo "File Size: $(ls -lh data/raw/crashes.csv | awk '{print $5}')"\x3b   echo "SHA256 Checksum: $(sha256sum data/raw/crashes.csv | awk '{print $1}')"\x3b } > results/data_info.txt;59eb8c34-6b28-4a94-9dce-c7daa13baf0c]633;CDownload Date: Fri, Oct 30, 2026 10:18:47 AM
 File Size: 541M
 SHA256 Checksum: bb74b4de4df36f4b2ff8c3683f3bea4f4e194e8a07c0f6ac92d226a1ddb9a071

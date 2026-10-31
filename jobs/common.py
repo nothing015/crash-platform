@@ -25,7 +25,9 @@ def get_cleaned_crashes(spark):
     ]
     for col in count_columns:
         df = df.withColumn(col, F.expr(f"try_cast({col} AS INT)"))
-
+    for c in ['borough', 'on_street_name', 'cross_street_name', 'off_street_name']:
+        df = df.withColumn(c, F.when(F.length(F.trim(F.col(c))) == 0, None).otherwise(F.trim(F.col(c))))
+    
     return df
 
 def write_metrics(df):

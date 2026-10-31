@@ -1,0 +1,4 @@
+Format,Layout,Size_MB,File_Count,Write_Time_s,Q1_All_Time_s,Q2_All_Time_s,Year_Filter,Q1_Year_Time_s
+parquet,None,101.58,8,16.16,0.77,0.78,2023,0.58
+parquet,Year,87.65,16,22.0,0.85,0.84,2023,0.31
+parquet,YearMonth,103.65,169,58.96,4.93,4.56,2023,0.55

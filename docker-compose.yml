@@ -1,6 +1,7 @@
 services:
   spark:
-    image: spark:4.1.1-python3
+    # image: spark:4.1.1-python3
+    build: .
     user: root
     working_dir: /app
     volumes:
