@@ -4,7 +4,9 @@
 set -e
 cd /app
 
-SPARK_SUBMIT=(/opt/spark/bin/spark-submit --master 'local[*]' --driver-memory 3g --conf spark.sql.session.timeZone=UTC)
+# Quiet Spark logs: errors only (settings in scripts/log4j2.properties)
+LOG4J='file:/app/scripts/log4j2.properties'
+SPARK_SUBMIT=(/opt/spark/bin/spark-submit --master 'local[*]' --driver-memory 3g --conf spark.sql.session.timeZone=UTC --driver-java-options "-Dlog4j.configurationFile=$LOG4J -Dlog4j2.configurationFile=$LOG4J")
 
 if [ ! -f data/raw/crashes.csv ]; then
   echo "data/raw/crashes.csv not found. Run ./scripts/download_data.sh first."

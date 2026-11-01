@@ -58,6 +58,7 @@ It is done when the last line says `4 of 4 checks passed`. To run the layout exp
 - **`docker: command not found` or the Docker daemon is not running:** start Docker Desktop and wait until it says it is running.
 - **Spark stops with an out-of-memory error:** raise Docker's memory limit (Docker Desktop, Settings, Resources; on Windows with WSL 2, the `memory=` line in `%UserProfile%\.wslconfig`, then `wsl --shutdown`).
 - **Git Bash shows paths like `C:/Program Files/Git/...`:** Git Bash rewrites arguments that start with `/`. Put `MSYS_NO_PATHCONV=1` in front of the command.
+- **Need Spark's full logs while debugging?** By default only errors are shown. Run the job directly with the log level raised, for example `docker compose run --rm -e SPARK_LOG_LEVEL=info spark bash scripts/run_part1.sh`.
 - **`data/raw/crashes.csv not found`:** run `./scripts/start.sh`, which downloads the data first.
 
 ## Project layout
