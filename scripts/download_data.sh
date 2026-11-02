@@ -20,7 +20,10 @@ fi
 
 echo "Downloading the dataset to $CSV_FILE (about 540 MB)..."
 # -f fails on HTTP errors, -L follows redirects
-curl -fL -o "$CSV_FILE" "$DATA_URL"
+TMP_FILE="$CSV_FILE.part"
+rm -f "$TMP_FILE"
+curl -fL -o "$TMP_FILE" "$DATA_URL"
+mv "$TMP_FILE" "$CSV_FILE"
 
 echo "Recording file metadata..."
 FILE_SIZE=$(ls -lh "$CSV_FILE" | awk '{print $5}')

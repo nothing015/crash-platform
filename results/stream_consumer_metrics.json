@@ -1,0 +1,9 @@
+{
+  "topic": "crashes",
+  "messages_consumed": 300,
+  "bad_messages": 0,
+  "unknown_borough": 69,
+  "hours_seen": 16,
+  "first_event_ts": "2012-07-01T00:05:00",
+  "last_event_ts": "2012-07-01T15:10:00"
+}

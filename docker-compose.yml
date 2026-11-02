@@ -28,3 +28,17 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      
+  stream:
+    build: ./stream
+    working_dir: /app
+    volumes:
+      - ./stream:/app/stream
+      - ./sample_data:/app/sample_data
+      - ./data:/app/data
+      - ./results:/app/results
+    environment:
+      KAFKA_BOOTSTRAP: kafka:19092
+      PYTHONUNBUFFERED: '1'
+    depends_on:
+      - kafka

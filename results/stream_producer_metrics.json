@@ -1,0 +1,14 @@
+{
+  "source": "sample",
+  "limit": 300,
+  "topic": "crashes",
+  "speedup": 3600.0,
+  "rows_read": 100000,
+  "rows_dropped_null_ts": 1,
+  "rows_planned": 300,
+  "rows_sent": 300,
+  "rows_delivered": 300,
+  "rows_failed": 0,
+  "completed": true,
+  "seconds": 15.1
+}
