@@ -13,7 +13,7 @@ import time
 
 from confluent_kafka import Producer
 
-from common import (BOOTSTRAP, DEFAULT_TOPIC, RESULTS_DIR, ensure_topic, load_table,
+from common import (DEFAULT_TOPIC, RESULTS_DIR, client_config, ensure_topic, load_table,
                     wait_for_kafka, write_json)
 
 
@@ -114,7 +114,7 @@ def main():
 
     admin = wait_for_kafka()
     ensure_topic(admin, args.topic)
-    producer = Producer({'bootstrap.servers': BOOTSTRAP})
+    producer = Producer(client_config())
     stats = {'delivered': 0, 'failed': 0}
     sent = 0
     completed = True

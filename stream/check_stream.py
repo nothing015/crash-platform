@@ -43,9 +43,13 @@ def main():
     checks.append(('Producer finished its replay', producer['completed'], f"{producer['rows_sent']:,} rows sent"))
     checks.append(('No rows failed to deliver', producer['rows_failed'] == 0, f"{producer['rows_failed']} failed"))
     checks.append(('Delivered rows equal sent rows', producer['rows_delivered'] == producer['rows_sent'], ''))
-    checks.append(('Consumer received every delivered row',
-                   consumer['messages_consumed'] == producer['rows_delivered'],
-                   f"{consumer['messages_consumed']:,} consumed"))
+    checks.append(('Producer and consumer used the same topic', producer['topic'] == consumer['topic'],
+                   f"{producer['topic']} / {consumer['topic']}"))
+    consumed, delivered = consumer['messages_consumed'], producer['rows_delivered']
+    detail = f'{consumed:,} consumed'
+    if consumed > delivered:
+        detail += ' (more than were sent: the topic still holds rows from an earlier run; use a new --topic or run docker compose down)'
+    checks.append(('Consumer received every delivered row', consumed == delivered, detail))
     checks.append(('No unreadable messages', consumer['bad_messages'] == 0, f"{consumer['bad_messages']} unreadable"))
     checks.append(('Counts in the CSV add up to the messages consumed',
                    sum(streamed.values()) == consumer['messages_consumed'], f'{sum(streamed.values()):,}'))

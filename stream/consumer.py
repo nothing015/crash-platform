@@ -16,8 +16,8 @@ from collections import Counter, defaultdict
 
 from confluent_kafka import Consumer, KafkaError, KafkaException
 
-from common import (BOOTSTRAP, DEFAULT_TOPIC, RESULTS_DIR, borough_of, ensure_topic, hour_key,
-                    wait_for_kafka, write_json)
+from common import (DEFAULT_TOPIC, RESULTS_DIR, borough_of, client_config, ensure_topic,
+                    hour_key, wait_for_kafka, write_json)
 
 
 def hour_line(hour, counter):
@@ -60,12 +60,11 @@ def main():
 
     admin = wait_for_kafka()
     ensure_topic(admin, args.topic)   # so the consumer can start before the producer
-    consumer = Consumer({
-        'bootstrap.servers': BOOTSTRAP,
+    consumer = Consumer(client_config(**{
         'group.id': args.group,
         'auto.offset.reset': 'earliest',
         'enable.auto.commit': False,   # never commit: every run starts from the first message
-    })
+    }))
     consumer.subscribe([args.topic])
 
     counts = defaultdict(Counter)      # counts[hour][borough] = crashes

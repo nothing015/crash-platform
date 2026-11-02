@@ -10,6 +10,10 @@ from confluent_kafka.admin import AdminClient, NewTopic
 BOOTSTRAP = os.environ.get('KAFKA_BOOTSTRAP', 'kafka:19092')
 DEFAULT_TOPIC = os.environ.get('KAFKA_TOPIC', 'crashes')
 RESULTS_DIR = os.environ.get('RESULTS_DIR', '/app/results')
+# librdkafka prints a line for every failed connection attempt while Kafka is still starting.
+# Level 2 hides those; real problems are still reported by our own error messages.
+# For the full client logs when debugging: docker compose run --rm -e KAFKA_LOG_LEVEL=6 stream ...
+LOG_LEVEL = int(os.environ.get('KAFKA_LOG_LEVEL', '2'))
 
 # Where the rows to replay come from
 SOURCES = {
@@ -24,20 +28,28 @@ COLUMNS = [
 ]
 
 
-def wait_for_kafka(bootstrap=BOOTSTRAP, timeout=120):
+def client_config(**extra):
+    """Settings shared by the producer, consumer and admin client."""
+    return {'bootstrap.servers': BOOTSTRAP, 'log_level': LOG_LEVEL, **extra}
+
+
+def wait_for_kafka(timeout=120):
     """Block until the broker answers, so scripts can start right after `docker compose up`."""
-    admin = AdminClient({'bootstrap.servers': bootstrap})
+    admin = AdminClient(client_config())
     deadline = time.time() + timeout
     last_error = None
+    announced = False
     while time.time() < deadline:
         try:
             admin.list_topics(timeout=5)
             return admin
         except Exception as exc:  # the broker is probably still starting
             last_error = exc
-            print('Waiting for Kafka...', flush=True)
+            if not announced:
+                print('Waiting for Kafka to start...', flush=True)
+                announced = True
             time.sleep(2)
-    raise SystemExit(f'Kafka is not reachable at {bootstrap}: {last_error}')
+    raise SystemExit(f'Kafka is not reachable at {BOOTSTRAP}: {last_error}')
 
 
 def ensure_topic(admin, topic, partitions=1):
