@@ -1,2 +1,2 @@
-confluent-kafka
-pyarrow
+confluent-kafka==2.16.1
+pyarrow==26.0.1

@@ -1,14 +1,16 @@
 {
-  "source": "sample",
-  "limit": 300,
-  "topic": "crashes_20261102_150632",
-  "speedup": 3600.0,
-  "rows_read": 100000,
-  "rows_dropped_null_ts": 1,
-  "rows_planned": 300,
-  "rows_sent": 300,
-  "rows_delivered": 300,
+  "source": "full",
+  "limit": 0,
+  "topic": "crashes_20261108_175806",
+  "speedup": 0.0,
+  "rows_read": 2303506,
+  "rows_dropped_null_ts": 0,
+  "rows_planned": 2303506,
+  "rows_sent": 2303506,
+  "rows_delivered": 2303506,
   "rows_failed": 0,
   "completed": true,
-  "seconds": 15.1
+  "seconds": 13.2,
+  "rows_per_second": 174648.3,
+  "peak_memory_mb": 1121.9
 }

@@ -29,12 +29,27 @@ def expected_counts(source, limit):
     return expected
 
 
+def read_csv(name):
+    with open(os.path.join(RESULTS_DIR, name), newline='') as f:
+        return list(csv.DictReader(f))
+
+
+def latest_hour_matches(all_rows, latest_rows):
+    """The latest-hour file must be for the last hour in the full CSV and hold the same counts."""
+    if not all_rows:
+        return not latest_rows
+    last_hour = max(r['hour'] for r in all_rows)
+    expected = {r['borough']: int(r['crashes']) for r in all_rows if r['hour'] == last_hour}
+    got = {r['borough']: int(r['crashes']) for r in latest_rows if int(r['crashes'])}
+    return {r['hour'] for r in latest_rows} == {last_hour} and got == expected
+
+
 def main():
     try:
         producer = read_json('stream_producer_metrics.json')
         consumer = read_json('stream_consumer_metrics.json')
-        with open(os.path.join(RESULTS_DIR, 'q3_crashes_per_borough_hour.csv'), newline='') as f:
-            rows = list(csv.DictReader(f))
+        rows = read_csv('q3_crashes_per_borough_hour.csv')
+        latest_rows = read_csv('q3_latest_hour.csv')
     except OSError as exc:
         raise SystemExit(f'FAIL: missing output ({exc}). Run the producer and the consumer first.')
 
@@ -56,6 +71,8 @@ def main():
     expected = expected_counts(producer['source'], producer['limit'])
     checks.append(('Stream counts equal the batch recount from Parquet', streamed == expected,
                    f'{len(expected):,} hour and borough groups'))
+    checks.append(('Latest-hour file matches the last hour in the CSV', latest_hour_matches(rows, latest_rows),
+                   consumer.get('latest_hour') or 'no rows'))
 
     failed = 0
     for name, ok, detail in checks:

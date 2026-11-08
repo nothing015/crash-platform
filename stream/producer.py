@@ -14,7 +14,14 @@ import time
 from confluent_kafka import Producer
 
 from common import (DEFAULT_TOPIC, RESULTS_DIR, client_config, ensure_topic, load_table,
-                    wait_for_kafka, write_json)
+                    peak_memory_mb, rows_per_second, wait_for_kafka, write_json)
+
+
+def producer_config():
+    """acks=all: a row counts as sent only once the broker has stored it.
+    Idempotence stops a retry from writing the row twice (confluent-kafka leaves it off by default).
+    """
+    return client_config(**{'acks': 'all', 'enable.idempotence': True})
 
 
 def build_message(row):
@@ -114,7 +121,7 @@ def main():
 
     admin = wait_for_kafka()
     ensure_topic(admin, args.topic)
-    producer = Producer(client_config())
+    producer = Producer(producer_config())
     stats = {'delivered': 0, 'failed': 0}
     sent = 0
     completed = True
@@ -132,6 +139,8 @@ def main():
         'rows_read': rows_read, 'rows_dropped_null_ts': dropped, 'rows_planned': n,
         'rows_sent': sent, 'rows_delivered': stats['delivered'], 'rows_failed': stats['failed'],
         'completed': completed, 'seconds': round(elapsed, 1),
+        'rows_per_second': rows_per_second(stats['delivered'], elapsed),
+        'peak_memory_mb': peak_memory_mb(),
     }
     write_json(os.path.join(RESULTS_DIR, 'stream_producer_metrics.json'), metrics)
     print(f"Done: sent {sent:,}, delivered {stats['delivered']:,}, failed {stats['failed']:,} "

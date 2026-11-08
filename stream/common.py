@@ -1,15 +1,19 @@
 """Shared settings and helpers for the Part 2 producer, consumer and check script."""
+import csv
 import json
 import os
+import resource
 import time
+from datetime import datetime
 
-from confluent_kafka import KafkaError, KafkaException
+from confluent_kafka import KafkaError, KafkaException, TopicCollection
 from confluent_kafka.admin import AdminClient, NewTopic
 
 # Inside Docker the broker is reachable as kafka:19092 (see docker-compose.yml).
 BOOTSTRAP = os.environ.get('KAFKA_BOOTSTRAP', 'kafka:19092')
 DEFAULT_TOPIC = os.environ.get('KAFKA_TOPIC', 'crashes')
 RESULTS_DIR = os.environ.get('RESULTS_DIR', '/app/results')
+CHECKPOINT_DIR = os.environ.get('CHECKPOINT_DIR', '/app/data/stream_checkpoints')
 # librdkafka prints a line for every failed connection attempt while Kafka is still starting.
 # Level 2 hides those; real problems are still reported by our own error messages.
 # For the full client logs when debugging: docker compose run --rm -e KAFKA_LOG_LEVEL=6 stream ...
@@ -66,6 +70,18 @@ def ensure_topic(admin, topic, partitions=1):
     return True
 
 
+def topic_identity(admin, topic, attempts=10):
+    """Kafka's unique ID for this topic. A deleted and recreated topic gets a new one."""
+    for attempt in range(attempts):
+        try:
+            future = admin.describe_topics(TopicCollection([topic]))[topic]
+            return str(future.result(timeout=10).topic_id)
+        except KafkaException:             # a brand-new topic can take a moment to appear
+            if attempt == attempts - 1:
+                raise
+            time.sleep(0.5)
+
+
 def load_table(source, limit=0):
     """Read the rows to replay, drop rows without an event time, sort by event time.
 
@@ -89,7 +105,10 @@ def load_table(source, limit=0):
 
 
 def hour_key(crash_ts_text):
-    """'2012-07-01T14:23:00' -> '2012-07-01T14'"""
+    """'2012-07-01T14:23:00' -> '2012-07-01T14'. Anything else raises ValueError or TypeError."""
+    if len(crash_ts_text) != 19 or crash_ts_text[10] != 'T':
+        raise ValueError(f'not a YYYY-MM-DDTHH:MM:SS timestamp: {crash_ts_text!r}')
+    datetime.fromisoformat(crash_ts_text)
     return crash_ts_text[:13]
 
 
@@ -98,10 +117,30 @@ def borough_of(value):
     return (value or '').strip().upper() or 'UNKNOWN'
 
 
-def write_json(path, data):
+def rows_per_second(rows, seconds):
+    return round(rows / seconds, 1) if seconds > 0 else 0
+
+
+def peak_memory_mb():
+    """The most memory this process has used so far (Linux reports it in KB)."""
+    return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
+
+
+def write_json(path, data, indent=2):
     """Write atomically, so other programs never read a half-written file."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
     tmp = path + '.tmp'
     with open(tmp, 'w') as f:
-        json.dump(data, f, indent=2)
+        json.dump(data, f, indent=indent)
+    os.replace(tmp, path)
+
+
+def write_csv(path, header, rows):
+    """Write atomically, like write_json."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    tmp = path + '.tmp'
+    with open(tmp, 'w', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerows(rows)
     os.replace(tmp, path)

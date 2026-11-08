@@ -2,7 +2,7 @@
 
 CPS 853 Team 2 project: a small data platform on the NYC Motor Vehicle Collisions dataset (about 2.27 million rows) from NYC Open Data. It answers three questions: which ten streets have the most crashes, at what hour of the day the most people are injured, and how many crashes happened in each borough in the latest hour.
 
-**Status:** Part 1 (store and batch) is ready. Part 2 (stream), Part 3 (serve) and Part 4 (quality and monitoring) are in progress.
+**Status:** Part 1 (store and batch) and Part 2 (stream) are ready. Part 3 (serve) and Part 4 (quality and monitoring) are in progress.
 
 ## Requirements
 
@@ -30,6 +30,22 @@ docker compose run --rm spark bash scripts/run_benchmarks.sh
 
 It is done when the last line says `4 of 4 checks passed`. To run the layout experiments on ORC instead of Parquet: `docker compose run --rm -e FORMAT=orc spark bash scripts/run_benchmarks.sh`
 
+## Part 2 (stream)
+
+Replays crash rows through Kafka in event-time order and counts crashes per borough per hour. Each command runs from the repo folder and is done when the last line says `9 of 9 checks passed`.
+
+```
+./scripts/run_stream_demo.sh
+```
+
+That replays 300 rows from the sample in git and takes under a minute. For every row (run `./scripts/start.sh` first, about 40 seconds of streaming):
+
+```
+SOURCE=full LIMIT=0 SPEEDUP=0 PRINT_EVERY=0 ./scripts/run_stream_demo.sh
+```
+
+To kill the consumer in the middle of a replay and check that its restart loses and repeats nothing: `./scripts/run_restart_demo.sh`. Unit tests: `docker compose run --rm stream python -m unittest discover -s stream`. Design, results and limitations are in `docs/part2_stream.md`.
+
 ## Getting the latest version
 
 - **First time on a computer:** clone the repo (see above).
@@ -50,6 +66,9 @@ It is done when the last line says `4 of 4 checks passed`. To run the layout exp
 | `results/layout_comparison.csv`   | Three partitioning layouts: size, files, write and query times |
 | `results/shuffle_comparison.csv`  | Question 1 with 200 and 8 shuffle partitions                   |
 | `results/layout_plans.txt`        | Query plans showing whether Spark skipped partitions           |
+| `results/q3_latest_hour.csv`      | Question 3: crashes per borough in the latest hour             |
+| `results/q3_crashes_per_borough_hour.csv` | Crashes for every hour and borough                     |
+| `results/stream_*_metrics.json`   | Part 2 rows, throughput, consumer lag, peak memory             |
 | `data/lake/`                      | Parquet, ORC and the Part 2 sample (not in git)                |
 
 ## Troubleshooting
@@ -65,9 +84,12 @@ It is done when the last line says `4 of 4 checks passed`. To run the layout exp
 
 ```
 docker-compose.yml     Spark (and a Kafka container for Part 2)
-scripts/               start.sh, download_data.sh, run_part1.sh, run_benchmarks.sh
+scripts/               start.sh, download_data.sh, run_part1.sh, run_benchmarks.sh,
+                       run_stream_demo.sh, run_restart_demo.sh
 jobs/                  common.py, convert.py, queries.py, bench_formats.py,
                        bench_layouts.py, check_part1.py
+stream/                producer.py, consumer.py, state.py, check_stream.py, tests
+docs/                  part2_stream.md (Part 2 design and results)
 sample_data/           100,000-row Parquet sample for Part 2
 results/               small CSV, JSON and text outputs (committed)
 data/                  raw and converted data (not in git)

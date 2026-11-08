@@ -1,9 +1,17 @@
 {
-  "topic": "crashes_20261102_150632",
-  "messages_consumed": 300,
+  "topic": "crashes_20261108_175806",
+  "messages_consumed": 2303506,
   "bad_messages": 0,
-  "unknown_borough": 69,
-  "hours_seen": 16,
+  "unknown_borough": 674862,
+  "hours_seen": 125182,
   "first_event_ts": "2012-07-01T00:05:00",
-  "last_event_ts": "2012-07-01T15:10:00"
+  "last_event_ts": "2026-11-03T23:55:00",
+  "latest_hour": "2026-11-03T23:00:00",
+  "resumed_from_offset": 0,
+  "next_offset": 2303506,
+  "lag": 0,
+  "messages_this_run": 2303506,
+  "seconds_this_run": 21.7,
+  "messages_per_second": 106311.2,
+  "peak_memory_mb": 160.6
 }
