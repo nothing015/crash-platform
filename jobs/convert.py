@@ -74,4 +74,12 @@ sizes = {
 with open('/app/results/format_sizes.json', 'w') as f:
     json.dump(sizes, f, indent=2)
 
+mb = 1024 * 1024
+print("=" * 40)
+print("File sizes, before (CSV) and after (Parquet, ORC):")
+print(f"  {'Format':<8}{'Size (MB)':>12}{'vs CSV':>10}")
+for name, key in [("CSV", "csv_bytes"), ("Parquet", "parquet_bytes"), ("ORC", "orc_bytes")]:
+    ratio = sizes[key] / sizes["csv_bytes"] if sizes["csv_bytes"] else 0
+    print(f"  {name:<8}{sizes[key] / mb:>12,.1f}{ratio:>9.0%}")
+print("=" * 40)
 print("Format sizes saved to /app/results/format_sizes.json")

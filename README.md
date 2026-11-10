@@ -4,25 +4,36 @@ CPS 853 Team 2 project: a small data platform on the NYC Motor Vehicle Collision
 
 **Status:** Part 1 (store and batch) and Part 2 (stream) are ready. Part 3 (serve) and Part 4 (quality and monitoring) are in progress.
 
-## Requirements
+## Before you start
 
-- Docker Desktop, with at least 4 GB of memory given to Docker (5 GB if your laptop can spare it)
-- Git. On Windows, run every command below in **Git Bash**
-- About 3 GB of free disk space (data, results and the Spark image) and an internet connection for the first run
+You need:
 
-## Quick start (Part 1)
+- Docker Desktop, running, with at least 4 GB of memory given to Docker (5 GB if your laptop can spare it)
+- Git. On Windows, run every command in this README in **Git Bash**
+- About 3 GB of free disk space (data, results and the Docker images) and an internet connection for the first run
 
-Open Git Bash (Windows) or Terminal (Mac) in a folder you like, and run these three commands one at a time:
+Then get the code and go into its folder, in Git Bash (Windows) or Terminal (Mac):
 
 ```
 git clone https://github.com/nothing015/crash-platform.git
 cd crash-platform
-./scripts/start.sh
 ```
 
-`start.sh` downloads the data (about 540 MB, skipped if it is already there), then runs Part 1 in Docker: it converts the CSV to Parquet and ORC in `data/lake/`, writes a 100,000-row sample for Part 2, answers questions 1 and 2 from the Parquet files, and checks the outputs. It is done when the last line says `8 of 8 checks passed`. The first run also downloads the Spark image, so it takes longer.
+## Quick start
 
-**Optional experiments** (several minutes): compares Parquet with ORC, then three partitioning layouts and one Spark shuffle setting. Stop Kafka first if it is running (`docker compose stop kafka`) so the timings are fair.
+From the `crash-platform` folder, run these two commands one at a time:
+
+```
+./scripts/start.sh
+./scripts/run_stream_demo.sh
+```
+
+1. **`start.sh` runs Part 1 (store and batch).** It downloads the data (about 540 MB, skipped if it is already there), then in Docker converts the CSV to Parquet and ORC in `data/lake/` and prints the file sizes before and after, writes a 100,000-row sample for Part 2, answers questions 1 and 2 from the Parquet files, and checks the outputs. It is done when the last line says `8 of 8 checks passed`. The first run also builds the Spark image, so it takes longer.
+2. **`run_stream_demo.sh` runs Part 2 (stream).** It starts Kafka, starts a consumer, and has a producer replay 300 crash rows into Kafka in event-time order (one event hour per second). The consumer prints each row it receives and a `>>` line with crashes per borough whenever an hour closes, which answers question 3. It takes under a minute and is done when the last line says `9 of 9 checks passed`.
+
+## More options
+
+**Part 1 experiments** (several minutes): compares Parquet with ORC, then three partitioning layouts and one Spark shuffle setting. Stop Kafka first if it is running (`docker compose stop kafka`) so the timings are fair.
 
 ```
 docker compose run --rm spark bash scripts/run_benchmarks.sh
@@ -30,15 +41,7 @@ docker compose run --rm spark bash scripts/run_benchmarks.sh
 
 It is done when the last line says `4 of 4 checks passed`. To run the layout experiments on ORC instead of Parquet: `docker compose run --rm -e FORMAT=orc spark bash scripts/run_benchmarks.sh`
 
-## Part 2 (stream)
-
-Replays crash rows through Kafka in event-time order and counts crashes per borough per hour. Each command runs from the repo folder and is done when the last line says `9 of 9 checks passed`.
-
-```
-./scripts/run_stream_demo.sh
-```
-
-That replays 300 rows from the sample in git and takes under a minute. For every row (run `./scripts/start.sh` first, about 40 seconds of streaming):
+**Part 2 on every row** (needs `./scripts/start.sh` first, about 40 seconds of streaming):
 
 ```
 SOURCE=full LIMIT=0 SPEEDUP=0 PRINT_EVERY=0 ./scripts/run_stream_demo.sh
