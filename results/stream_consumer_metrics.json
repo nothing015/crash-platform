@@ -1,5 +1,5 @@
 {
-  "topic": "crashes_20261116_001620",
+  "topic": "crashes_20261116_003913",
   "messages_consumed": 300,
   "bad_messages": 0,
   "unknown_borough": 69,
@@ -11,7 +11,7 @@
   "next_offset": 300,
   "lag": 0,
   "messages_this_run": 300,
-  "seconds_this_run": 9.2,
-  "messages_per_second": 32.8,
-  "peak_memory_mb": 31.1
+  "seconds_this_run": 11.5,
+  "messages_per_second": 26.1,
+  "peak_memory_mb": 30.9
 }

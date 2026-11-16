@@ -51,7 +51,8 @@ services:
     image: postgres:17-alpine
     mem_limit: 512m
     ports:
-      - '5432:5432'
+      # 5433 on the laptop, so it does not clash with a PostgreSQL installed on Windows or Mac (5432)
+      - '5433:5432'
     environment:
       # Local demo database only: these are not real credentials
       POSTGRES_USER: crash

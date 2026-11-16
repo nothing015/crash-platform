@@ -62,7 +62,7 @@ The full results are the files committed in `115d1b6` (the 2026-11-08 download, 
 - **Only as fresh as the last load.** Run `./scripts/run_serve.sh` again after a new Part 1 or Part 2 run.
 - **One snapshot at a time.** Every load replaces the previous answers. `load_log` records when each load happened, but older answers are not kept.
 - **The database holds answers, not crash rows.** Questions about other streets, years or columns need a new Spark job or a crash table in the database.
-- **Demo credentials.** User and password are both `crash`, set in `docker-compose.yml`, and port 5432 is open on the laptop. This is fine for a local demo, not for anything shared.
+- **Demo credentials.** User and password are both `crash`, set in `docker-compose.yml`, and the database is open on port 5433 of the laptop (5433 so it does not clash with a PostgreSQL installed on the laptop itself). This is fine for a local demo, not for anything shared.
 
 ## Reproducing it
 

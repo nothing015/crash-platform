@@ -51,7 +51,7 @@ SOURCE=full LIMIT=0 SPEEDUP=0 PRINT_EVERY=0 ./scripts/run_stream_demo.sh
 
 To kill the consumer in the middle of a replay and check that its restart loses and repeats nothing: `./scripts/run_restart_demo.sh`. Unit tests: `docker compose run --rm stream python -m unittest discover -s stream`. Design, results and limitations are in `docs/part2_stream.md`.
 
-**Part 3 database:** to look at the tables yourself, run `docker compose exec db psql -U crash crashes` (type `\dt` to list them, `\q` to quit). Run `./scripts/run_serve.sh` again after any new Part 1 or Part 2 run, since the database only changes when it loads. To delete the database and start fresh: `docker compose down -v`. Design, results and limitations are in `docs/part3_serve.md`.
+**Part 3 database:** to look at the tables yourself, run `docker compose exec db psql -U crash crashes` (type `\dt` to list them, `\q` to quit). From a tool on your laptop, such as a VS Code PostgreSQL extension, connect to host `localhost`, port `5433`, database `crashes`, user `crash`, password `crash`. Run `./scripts/run_serve.sh` again after any new Part 1 or Part 2 run, since the database only changes when it loads. To delete the database and start fresh: `docker compose down -v`. Design, results and limitations are in `docs/part3_serve.md`.
 
 ## Getting the latest version
 
@@ -86,7 +86,8 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 - **Spark stops with an out-of-memory error:** raise Docker's memory limit (Docker Desktop, Settings, Resources; on Windows with WSL 2, the `memory=` line in `%UserProfile%\.wslconfig`, then `wsl --shutdown`).
 - **Git Bash shows paths like `C:/Program Files/Git/...`:** Git Bash rewrites arguments that start with `/`. Put `MSYS_NO_PATHCONV=1` in front of the command.
 - **Need Spark's full logs while debugging?** By default only errors are shown. Run the job directly with the log level raised, for example `docker compose run --rm -e SPARK_LOG_LEVEL=info spark bash scripts/run_part1.sh`.
-- **`port is already allocated` for 5432 when starting the database:** another Postgres is running on your laptop. Stop it, or change `'5432:5432'` to `'5433:5432'` in `docker-compose.yml`.
+- **`password authentication failed for user "crash"` from a database tool on your laptop:** check that it connects to port **5433**, not 5432. The Docker database is on 5433 so it does not clash with a PostgreSQL installed on the laptop itself, which normally uses 5432.
+- **`port is already allocated` for 5433 when starting the database:** something else on your laptop uses that port. Change `'5433:5432'` in `docker-compose.yml` to another port, such as `'5434:5432'`.
 - **`data/raw/crashes.csv not found`:** run `./scripts/start.sh`, which downloads the data first.
 
 ## Project layout
