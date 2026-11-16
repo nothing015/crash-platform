@@ -45,3 +45,39 @@ services:
       PYTHONUNBUFFERED: '1'
     depends_on:
       - kafka
+
+  # Part 3: the database that serves the answers to all three questions
+  db:
+    image: postgres:17-alpine
+    mem_limit: 512m
+    ports:
+      - '5432:5432'
+    environment:
+      # Local demo database only: these are not real credentials
+      POSTGRES_USER: crash
+      POSTGRES_PASSWORD: crash
+      POSTGRES_DB: crashes
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U crash -d crashes']
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  serve:
+    build: ./serve
+    mem_limit: 512m
+    working_dir: /app
+    volumes:
+      - ./serve:/app/serve
+      - ./results:/app/results
+    environment:
+      DATABASE_URL: postgresql://crash:crash@db:5432/crashes
+      PYTHONUNBUFFERED: '1'
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

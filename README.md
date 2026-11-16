@@ -2,7 +2,7 @@
 
 CPS 853 Team 2 project: a small data platform on the NYC Motor Vehicle Collisions dataset (about 2.27 million rows) from NYC Open Data. It answers three questions: which ten streets have the most crashes, at what hour of the day the most people are injured, and how many crashes happened in each borough in the latest hour.
 
-**Status:** Part 1 (store and batch) and Part 2 (stream) are ready. Part 3 (serve) and Part 4 (quality and monitoring) are in progress.
+**Status:** Part 1 (store and batch), Part 2 (stream) and Part 3 (serve) are ready. Part 4 (quality and monitoring) is in progress.
 
 ## Before you start
 
@@ -21,15 +21,17 @@ cd crash-platform
 
 ## Quick start
 
-From the `crash-platform` folder, run these two commands one at a time:
+From the `crash-platform` folder, run these three commands one at a time:
 
 ```
 ./scripts/start.sh
 ./scripts/run_stream_demo.sh
+./scripts/run_serve.sh
 ```
 
 1. **`start.sh` runs Part 1 (store and batch).** It downloads the data (about 540 MB, skipped if it is already there), then in Docker converts the CSV to Parquet and ORC in `data/lake/` and prints the file sizes before and after, writes a 100,000-row sample for Part 2, answers questions 1 and 2 from the Parquet files, and checks the outputs. It is done when the last line says `8 of 8 checks passed`. The first run also builds the Spark image, so it takes longer.
 2. **`run_stream_demo.sh` runs Part 2 (stream).** It starts Kafka, starts a consumer, and has a producer replay 300 crash rows into Kafka in event-time order (one event hour per second). The consumer prints each row it receives and a `>>` line with crashes per borough whenever an hour closes, which answers question 3. It takes under a minute and is done when the last line says `9 of 9 checks passed`.
+3. **`run_serve.sh` runs Part 3 (serve).** It starts Postgres, loads the four result files from Parts 1 and 2 into one table each, answers all three questions from the database, and checks every table against its file. It takes under a minute and is done when the last line says `10 of 10 checks passed`.
 
 ## More options
 
@@ -48,6 +50,8 @@ SOURCE=full LIMIT=0 SPEEDUP=0 PRINT_EVERY=0 ./scripts/run_stream_demo.sh
 ```
 
 To kill the consumer in the middle of a replay and check that its restart loses and repeats nothing: `./scripts/run_restart_demo.sh`. Unit tests: `docker compose run --rm stream python -m unittest discover -s stream`. Design, results and limitations are in `docs/part2_stream.md`.
+
+**Part 3 database:** to look at the tables yourself, run `docker compose exec db psql -U crash crashes` (type `\dt` to list them, `\q` to quit). Run `./scripts/run_serve.sh` again after any new Part 1 or Part 2 run, since the database only changes when it loads. To delete the database and start fresh: `docker compose down -v`. Design, results and limitations are in `docs/part3_serve.md`.
 
 ## Getting the latest version
 
@@ -73,6 +77,7 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 | `results/q3_crashes_per_borough_hour.csv` | Crashes for every hour and borough                     |
 | `results/stream_*_metrics.json`   | Part 2 rows, throughput, consumer lag, peak memory             |
 | `data/lake/`                      | Parquet, ORC and the Part 2 sample (not in git)                |
+| Postgres `crashes` database       | The four result tables and a `load_log` table (Part 3, not in git) |
 
 ## Troubleshooting
 
@@ -81,18 +86,20 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 - **Spark stops with an out-of-memory error:** raise Docker's memory limit (Docker Desktop, Settings, Resources; on Windows with WSL 2, the `memory=` line in `%UserProfile%\.wslconfig`, then `wsl --shutdown`).
 - **Git Bash shows paths like `C:/Program Files/Git/...`:** Git Bash rewrites arguments that start with `/`. Put `MSYS_NO_PATHCONV=1` in front of the command.
 - **Need Spark's full logs while debugging?** By default only errors are shown. Run the job directly with the log level raised, for example `docker compose run --rm -e SPARK_LOG_LEVEL=info spark bash scripts/run_part1.sh`.
+- **`port is already allocated` for 5432 when starting the database:** another Postgres is running on your laptop. Stop it, or change `'5432:5432'` to `'5433:5432'` in `docker-compose.yml`.
 - **`data/raw/crashes.csv not found`:** run `./scripts/start.sh`, which downloads the data first.
 
 ## Project layout
 
 ```
-docker-compose.yml     Spark (and a Kafka container for Part 2)
+docker-compose.yml     Spark, plus Kafka (Part 2) and Postgres (Part 3)
 scripts/               start.sh, download_data.sh, run_part1.sh, run_benchmarks.sh,
-                       run_stream_demo.sh, run_restart_demo.sh
+                       run_stream_demo.sh, run_restart_demo.sh, run_serve.sh
 jobs/                  common.py, convert.py, queries.py, bench_formats.py,
                        bench_layouts.py, check_part1.py
 stream/                producer.py, consumer.py, state.py, check_stream.py, tests
-docs/                  part2_stream.md (Part 2 design and results)
+serve/                 schema.sql, load.py, query.py, check_serve.py
+docs/                  part2_stream.md and part3_serve.md (design and results)
 sample_data/           100,000-row Parquet sample for Part 2
 results/               small CSV, JSON and text outputs (committed)
 data/                  raw and converted data (not in git)
