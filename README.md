@@ -27,9 +27,25 @@ From the `crash-platform` folder, run the complete pipeline:
 ./scripts/run_all.sh
 ```
 
-`run_all.sh` runs Part 1, the stream fault-injection checks, Part 2, Part 3 and the cross-part checker. By default Part 2 replays a 300-row sample. To stream the complete accepted dataset instead (several minutes), run `FULL_STREAM=1 ./scripts/run_all.sh`. The first run downloads the CSV (about 540 MB, skipped if already present) and builds the Docker images.
+`run_all.sh` runs Part 1, the stream fault-injection checks, Part 2, Part 3 and the cross-part checker. By default Part 2 replays 300 rows from the current validated dataset. To stream the complete accepted dataset instead (several minutes), run `FULL_STREAM=1 ./scripts/run_all.sh`. The first run downloads the CSV (about 540 MB, skipped if already present) and builds the Docker images.
 
 Part 1 validates the raw rows and quarantines rejected records. Quality threshold breaches are reported in the quality report and dashboard but do not, by themselves, stop Part 1. To view monitoring after a run, start `./scripts/run_dashboard.sh` and open <http://localhost:8050>.
+
+### Run the three parts manually
+
+From the `crash-platform` folder, run these commands one at a time:
+
+```
+./scripts/start.sh
+./scripts/run_stream_demo.sh
+./scripts/run_serve.sh
+```
+
+1. **`start.sh` runs Part 1 (store and batch).** It downloads the data (about 540 MB, skipped if it is already present), validates the raw CSV, quarantines rejected rows, converts the accepted rows to Parquet and ORC in `data/lake/`, writes a 100,000-row sample for Part 2, and answers questions 1 and 2 from the Parquet files. It is done when the last line says `10 of 10 checks passed`. The first run also builds the Spark image, so it takes longer.
+2. **`run_stream_demo.sh` runs Part 2 (stream).** By default, it starts Kafka and a consumer, then a producer replays the first 300 rows from the committed `sample_data/` fixture in event-time order (one event hour per second). The consumer answers question 3 and the stream checker reports `9 of 9 checks passed`. It takes under a minute. Do not reuse an old topic for a replay; the script creates a new topic for each run.
+3. **`run_serve.sh` runs Part 3 (serve).** It starts Postgres, loads the result files from Parts 1 and 2, answers all three questions from the database, and checks every table against its file. It is done when the last line says `10 of 10 checks passed`.
+
+The complete `./scripts/run_all.sh` runner differs from the manual Part 2 command in one important way: in its default 300-row mode, it streams the first 300 rows from the **current validated dataset** rather than the older committed `sample_data/` fixture. It also runs the stream fault-injection check and the cross-part checker. Use `FULL_STREAM=1 ./scripts/run_all.sh` to stream every accepted row.
 
 ## More options
 
