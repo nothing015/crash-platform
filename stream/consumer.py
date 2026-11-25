@@ -17,8 +17,9 @@ import time
 from confluent_kafka import OFFSET_BEGINNING, Consumer, KafkaError, KafkaException, TopicPartition
 
 from common import (CHECKPOINT_DIR, DEFAULT_TOPIC, RESULTS_DIR, borough_of, client_config,
-                    ensure_topic, peak_memory_mb, rows_per_second, topic_identity, wait_for_kafka,
-                    write_csv, write_json)
+                    append_csv_row, container_memory_limit_mb, container_memory_mb,
+                    container_memory_stats, ensure_topic, peak_memory_mb, rows_per_second, topic_identity,
+                    source_checksum, wait_for_kafka, write_csv, write_json)
 from state import StreamState, latest_hour_rows, load_checkpoint, save_checkpoint
 
 CSV_HEADER = ['hour', 'borough', 'crashes']
@@ -52,8 +53,11 @@ def write_live_results(state, run, lag, args):
     seconds = (run['last'] - run['first']) if run['first'] is not None else 0
     write_json(os.path.join(RESULTS_DIR, 'stream_consumer_metrics.json'), {
         'topic': args.topic,
+        'source_sha256': source_checksum(),
         'messages_consumed': state.stats['messages'],
         'bad_messages': state.stats['bad'],
+        'late_messages': state.stats['late_messages'],
+        'duplicate_collision_ids': state.stats['duplicate_collision_ids'],
         'unknown_borough': state.stats['unknown_borough'],
         'hours_seen': len(state.counts),
         'first_event_ts': state.stats['first_ts'],
@@ -66,7 +70,22 @@ def write_live_results(state, run, lag, args):
         'seconds_this_run': round(seconds, 1),
         'messages_per_second': rows_per_second(run['messages'], seconds),
         'peak_memory_mb': peak_memory_mb(),
+        'container_memory_peak_mb': container_memory_mb(),
+        'container_memory_limit_mb': container_memory_limit_mb(),
+        **container_memory_stats(),
+        'started_at': run.get('started_at'),
+        'finished_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
     })
+    append_csv_row(
+        os.path.join(RESULTS_DIR, 'stream_lag.csv'),
+        ['time', 'offset', 'lag', 'messages_per_second'],
+        [
+            time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            sum(state.offsets.values()),
+            lag,
+            rows_per_second(run['messages'], seconds),
+        ],
+    )
 
 
 def write_full_results(state, checkpoint, topic_id):
@@ -112,7 +131,13 @@ def main():
     for signal_number in (signal.SIGINT, signal.SIGTERM):
         signal.signal(signal_number, lambda *_: stop_requested.append(True))
 
-    run = {'first': None, 'last': None, 'messages': 0, 'resumed_from': sum(state.offsets.values())}
+    run = {
+        'first': None,
+        'last': None,
+        'messages': 0,
+        'resumed_from': sum(state.offsets.values()),
+        'started_at': time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+    }
     started = last_activity = last_live = last_full = time.monotonic()
     if run['resumed_from']:
         print(f"Resuming from offset {run['resumed_from']:,}: "

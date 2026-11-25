@@ -15,8 +15,13 @@ from producer import producer_config
 from state import StreamState, latest_hour_rows, load_checkpoint, save_checkpoint
 
 
-def message(ts, borough: object = 'BROOKLYN'):
-    return json.dumps({'crash_ts': ts, 'borough': borough, 'on_street_name': 'MAIN ST'}).encode()
+def message(ts, borough: object = 'BROOKLYN', collision_id=None):
+    return json.dumps({
+        'collision_id': collision_id or ts,
+        'crash_ts': ts,
+        'borough': borough,
+        'on_street_name': 'MAIN ST',
+    }).encode()
 
 
 # Ten crashes over three hours; the offset of each one is its position in this list.
@@ -102,6 +107,15 @@ class ApplyTests(unittest.TestCase):
         state.apply(0, 10, message('2012-07-01T00:20:00', 'BRONX'))
         self.assertEqual(state.counts['2012-07-01T00']['BRONX'], 1)
         self.assertEqual(state.current_hour, '2012-07-01T02')
+        self.assertEqual(state.stats['late_messages'], 1)
+
+    def test_duplicate_collision_id_is_counted_as_bad_and_skipped(self):
+        state = StreamState()
+        state.apply(0, 0, message('2012-07-01T00:05:00', collision_id='same'))
+        state.apply(0, 1, message('2012-07-01T00:10:00', collision_id='same'))
+        self.assertEqual(state.stats['duplicate_collision_ids'], 1)
+        self.assertEqual(state.stats['bad'], 1)
+        self.assertEqual(state.stats['messages'], 1)
 
 
 class CheckpointTests(unittest.TestCase):
@@ -121,6 +135,7 @@ class CheckpointTests(unittest.TestCase):
         expected = feed(StreamState())
         self.assertEqual(restored.counts, expected.counts)
         self.assertEqual(restored.stats, expected.stats)
+        self.assertEqual(restored.seen_collision_ids, expected.seen_collision_ids)
         self.assertEqual(restored.offsets, expected.offsets)
         self.assertEqual(restored.current_hour, expected.current_hour)
 

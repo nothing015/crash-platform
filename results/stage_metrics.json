@@ -1,0 +1,117 @@
+{
+  "run_id": "afb6ca31-01c6-43e0-86b0-0e3ef8d541b9",
+  "updated_at": "2026-11-25T03:31:05.522162+00:00",
+  "stages": [
+    {
+      "stage": "raw_csv_read",
+      "rows_in": 2307963,
+      "rows_out": 2307963,
+      "seconds": 8.33,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "quality_classification",
+      "rows_in": 2307963,
+      "rows_out": 2307813,
+      "seconds": 108.0,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "quarantine_write",
+      "rows_in": 150,
+      "rows_out": 150,
+      "seconds": 15.11,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "validated_dataset_write",
+      "rows_in": 2307813,
+      "rows_out": 2307813,
+      "seconds": 38.79,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "parquet_write",
+      "rows_in": 2307813,
+      "rows_out": 2307813,
+      "seconds": 55.82,
+      "container_memory_peak_mb": 3123.9,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "orc_write",
+      "rows_in": 2307813,
+      "rows_out": 2307813,
+      "seconds": 43.15,
+      "container_memory_peak_mb": 3123.9,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "part2_sample_write",
+      "rows_in": 2307813,
+      "rows_out": 100000,
+      "container_memory_peak_mb": 3123.9,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "q1_top_streets",
+      "rows_in": 2307813,
+      "rows_out": 10,
+      "seconds": 21.47,
+      "container_memory_peak_mb": 3123.9,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "q2_injuries_by_hour",
+      "rows_in": 2307813,
+      "rows_out": 24,
+      "seconds": 21.47,
+      "container_memory_peak_mb": 3123.9,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "q1_street_normalization_comparison",
+      "rows_in": 2307813,
+      "rows_out": 10,
+      "seconds": 6.88,
+      "container_memory_peak_mb": 3123.9,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "serve_load:q1_top_streets",
+      "rows_in": 10,
+      "rows_out": 10,
+      "seconds": 0.04,
+      "container_memory_peak_mb": 84.0,
+      "container_memory_limit_mb": 512.0
+    },
+    {
+      "stage": "serve_load:q2_injuries_by_hour",
+      "rows_in": 24,
+      "rows_out": 24,
+      "seconds": 0.0,
+      "container_memory_peak_mb": 84.0,
+      "container_memory_limit_mb": 512.0
+    },
+    {
+      "stage": "serve_load:q3_crashes_per_borough_hour",
+      "rows_in": 81,
+      "rows_out": 81,
+      "seconds": 0.0,
+      "container_memory_peak_mb": 84.0,
+      "container_memory_limit_mb": 512.0
+    },
+    {
+      "stage": "serve_load:q3_latest_hour",
+      "rows_in": 6,
+      "rows_out": 6,
+      "seconds": 0.0,
+      "container_memory_peak_mb": 84.0,
+      "container_memory_limit_mb": 512.0
+    }
+  ]
+}

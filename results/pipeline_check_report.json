@@ -1,0 +1,44 @@
+{
+  "checked_at": "2026-11-25T03:31:11.740995+00:00",
+  "status": "pass",
+  "passed": 7,
+  "failed": 0,
+  "total": 7,
+  "checks": [
+    {
+      "name": "Part 1 and both stream stages used the same source download",
+      "result": "pass",
+      "detail": "0be212dab46f00698a92976349197534dc652ed3000660d07167469116d05e36"
+    },
+    {
+      "name": "Sample stream respects its planned limit",
+      "result": "pass",
+      "detail": "300 sent from 2,307,813 read"
+    },
+    {
+      "name": "Stream batch-recount check passed",
+      "result": "pass",
+      "detail": "9/9 checks"
+    },
+    {
+      "name": "Database table checks passed",
+      "result": "pass",
+      "detail": "10/10 checks"
+    },
+    {
+      "name": "Q2 injury total matches validated Part 1 input",
+      "result": "pass",
+      "detail": "780,859 in Q2 / 780,859 in Part 1"
+    },
+    {
+      "name": "Q3 hourly counts add up to valid consumed messages",
+      "result": "pass",
+      "detail": "300 hourly crashes / 300 consumed"
+    },
+    {
+      "name": "Database was loaded after Part 1 and streaming completed",
+      "result": "pass",
+      "detail": "2026-11-25T03:31:05.404679+00:00"
+    }
+  ]
+}

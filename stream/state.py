@@ -15,9 +15,18 @@ BOROUGHS = ['BRONX', 'BROOKLYN', 'MANHATTAN', 'QUEENS', 'STATEN ISLAND', 'UNKNOW
 class StreamState:
     def __init__(self):
         self.counts = defaultdict(Counter)      # counts[hour][borough] = crashes
-        self.stats = {'messages': 0, 'bad': 0, 'unknown_borough': 0, 'first_ts': None, 'last_ts': None}
+        self.stats = {
+            'messages': 0,
+            'bad': 0,
+            'unknown_borough': 0,
+            'late_messages': 0,
+            'duplicate_collision_ids': 0,
+            'first_ts': None,
+            'last_ts': None,
+        }
         self.offsets = {}                       # offsets[partition] = next offset to read
         self.current_hour = None                # the latest hour seen so far
+        self.seen_collision_ids = set()
 
     def apply(self, partition, offset, value):
         """Count one message. Returns its contents, or None if it was skipped or unreadable."""
@@ -28,10 +37,20 @@ class StreamState:
             data = json.loads(value)
             hour = hour_key(data['crash_ts'])
             borough = borough_of(data.get('borough'))
+            collision_id = str(data['collision_id']).strip()
+            if not collision_id:
+                raise ValueError('missing collision_id')
         except (ValueError, KeyError, TypeError, AttributeError):
             self.stats['bad'] += 1
             return None
 
+        if collision_id in self.seen_collision_ids:
+            self.stats['bad'] += 1
+            self.stats['duplicate_collision_ids'] += 1
+            return None
+        self.seen_collision_ids.add(collision_id)
+        if self.current_hour is not None and hour < self.current_hour:
+            self.stats['late_messages'] += 1
         self.counts[hour][borough] += 1
         if self.current_hour is None or hour > self.current_hour:
             self.current_hour = hour            # a late message never moves this back
@@ -50,6 +69,7 @@ def save_checkpoint(path, state, topic_id):
         'current_hour': state.current_hour,
         'stats': state.stats,
         'counts': state.counts,
+        'seen_collision_ids': list(state.seen_collision_ids),
     }, indent=None)
 
 
@@ -66,6 +86,9 @@ def load_checkpoint(path, topic_id):
     state.offsets = {int(partition): offset for partition, offset in saved['offsets'].items()}
     state.current_hour = saved['current_hour']
     state.stats = saved['stats']
+    state.stats.setdefault('late_messages', 0)
+    state.stats.setdefault('duplicate_collision_ids', 0)
+    state.seen_collision_ids = set(saved.get('seen_collision_ids', []))
     for hour, boroughs in saved['counts'].items():
         state.counts[hour] = Counter(boroughs)
     return state

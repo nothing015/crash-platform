@@ -1,0 +1,304 @@
+{
+  "run_id": "afb6ca31-01c6-43e0-86b0-0e3ef8d541b9",
+  "checked_at": "2026-11-25T03:26:45.179645+00:00",
+  "started_at": "2026-11-25T03:23:48.223983+00:00",
+  "source": "data/raw/crashes.csv",
+  "source_sha256": "0be212dab46f00698a92976349197534dc652ed3000660d07167469116d05e36",
+  "download_date": "2026-11-24",
+  "rows_in": 2307963,
+  "rows_out": 2307813,
+  "rows_quarantined": 150,
+  "quarantine_path": "data/quarantine/quality_failures",
+  "validated_path": "data/lake/quality_validated",
+  "missing_columns": [],
+  "stages": [
+    {
+      "stage": "raw_csv_read",
+      "rows_in": 2307963,
+      "rows_out": 2307963,
+      "seconds": 8.33,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "quality_classification",
+      "rows_in": 2307963,
+      "rows_out": 2307813,
+      "seconds": 108.0,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "quarantine_write",
+      "rows_in": 150,
+      "rows_out": 150,
+      "seconds": 15.11,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    },
+    {
+      "stage": "validated_dataset_write",
+      "rows_in": 2307813,
+      "rows_out": 2307813,
+      "seconds": 38.79,
+      "container_memory_peak_mb": 1992.7,
+      "container_memory_limit_mb": 4096.0
+    }
+  ],
+  "rules": [
+    {
+      "id": "required_schema",
+      "description": "All columns used by the pipeline are present",
+      "level": "fail",
+      "max_failure_rate": 0.0,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 0.0,
+      "result": "pass"
+    },
+    {
+      "id": "valid_crash_timestamp",
+      "description": "Crash date and time parse successfully",
+      "level": "fail",
+      "max_failure_rate": 0.001,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 2307.963,
+      "result": "pass"
+    },
+    {
+      "id": "plausible_timestamp_range",
+      "description": "Crash timestamp is between 2012-07-01 and today",
+      "level": "warn",
+      "max_failure_rate": 0.01,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 23079.63,
+      "result": "pass"
+    },
+    {
+      "id": "nonnegative_integer_counts",
+      "description": "Injury and fatality counts are nonnegative whole numbers",
+      "level": "fail",
+      "max_failure_rate": 0.001,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 2307.963,
+      "result": "pass"
+    },
+    {
+      "id": "invalid_count_casts",
+      "description": "Non-empty injury/fatality values cast to integers",
+      "level": "warn",
+      "max_failure_rate": 0.0,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 0.0,
+      "result": "pass"
+    },
+    {
+      "id": "valid_borough",
+      "description": "Borough is a NYC borough or empty",
+      "level": "fail",
+      "max_failure_rate": 0.001,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 2307.963,
+      "result": "pass"
+    },
+    {
+      "id": "present_collision_id",
+      "description": "Collision ID is present",
+      "level": "fail",
+      "max_failure_rate": 0.0,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 0.0,
+      "result": "pass"
+    },
+    {
+      "id": "unique_collision_id",
+      "description": "Collision IDs are unique",
+      "level": "warn",
+      "max_failure_rate": 0.01,
+      "failed_rows": 0,
+      "failure_rate": 0.0,
+      "measured_value": 0.0,
+      "threshold_rows": 23079.63,
+      "result": "pass"
+    },
+    {
+      "id": "nyc_coordinates",
+      "description": "Coordinates are within NYC bounds, empty, or zero",
+      "level": "warn",
+      "max_failure_rate": 0.05,
+      "failed_rows": 150,
+      "failure_rate": 6.499237639424896e-05,
+      "measured_value": 6.499237639424896e-05,
+      "threshold_rows": 115398.15000000001,
+      "result": "pass"
+    }
+  ],
+  "volume_check": {
+    "minimum_rows": 1000000,
+    "previous_rows": 2307963,
+    "rows_in": 2307963,
+    "change_rate": 0.0,
+    "minimum_result": "pass",
+    "change_result": "pass"
+  },
+  "completeness_checks": [
+    {
+      "column": "borough",
+      "missing_rows": 675014,
+      "missing_share": 0.29247175972925044,
+      "baseline_share": 0.293,
+      "warn_share_range": [
+        0.27299999999999996,
+        0.313
+      ],
+      "result": "pass"
+    },
+    {
+      "column": "on_street_name",
+      "missing_rows": 511634,
+      "missing_share": 0.22168206336063445,
+      "baseline_share": 0.222,
+      "warn_share_range": [
+        0.202,
+        0.242
+      ],
+      "result": "pass"
+    }
+  ],
+  "missing_values": {
+    "crash_timestamp": 0,
+    "borough": 675014,
+    "on_street_name": 511634,
+    "count_columns": {
+      "number_of_persons_injured": 18,
+      "number_of_persons_killed": 31,
+      "number_of_pedestrians_injured": 0,
+      "number_of_pedestrians_killed": 0,
+      "number_of_cyclist_injured": 0,
+      "number_of_cyclist_killed": 0,
+      "number_of_motorist_injured": 0,
+      "number_of_motorist_killed": 0
+    }
+  },
+  "invalid_casts_by_column": {
+    "number_of_persons_injured": 0,
+    "number_of_persons_killed": 0,
+    "number_of_pedestrians_injured": 0,
+    "number_of_pedestrians_killed": 0,
+    "number_of_cyclist_injured": 0,
+    "number_of_cyclist_killed": 0,
+    "number_of_motorist_injured": 0,
+    "number_of_motorist_killed": 0
+  },
+  "overall_status": "pass",
+  "seconds": 176.95,
+  "container_memory_peak_mb": 1992.7,
+  "container_memory_limit_mb": 4096.0,
+  "street_name_comparison": {
+    "normalizations": {
+      "PKWY": "PARKWAY",
+      "EXPY": "EXPRESSWAY",
+      "EXWY": "EXPRESSWAY",
+      "AVE": "AVENUE"
+    },
+    "raw_top_10": [
+      {
+        "street": "BROADWAY",
+        "crashes": 21624
+      },
+      {
+        "street": "BELT PARKWAY",
+        "crashes": 20962
+      },
+      {
+        "street": "ATLANTIC AVENUE",
+        "crashes": 17906
+      },
+      {
+        "street": "LONG ISLAND EXPRESSWAY",
+        "crashes": 14835
+      },
+      {
+        "street": "BROOKLYN QUEENS EXPRESSWAY",
+        "crashes": 14542
+      },
+      {
+        "street": "3 AVENUE",
+        "crashes": 14357
+      },
+      {
+        "street": "NORTHERN BOULEVARD",
+        "crashes": 13532
+      },
+      {
+        "street": "GRAND CENTRAL PKWY",
+        "crashes": 12196
+      },
+      {
+        "street": "LINDEN BOULEVARD",
+        "crashes": 11470
+      },
+      {
+        "street": "FDR DRIVE",
+        "crashes": 11287
+      }
+    ],
+    "standardized_top_10": [
+      {
+        "street": "BELT PARKWAY",
+        "crashes": 21926
+      },
+      {
+        "street": "BROADWAY",
+        "crashes": 21728
+      },
+      {
+        "street": "ATLANTIC AVENUE",
+        "crashes": 19084
+      },
+      {
+        "street": "GRAND CENTRAL PARKWAY",
+        "crashes": 15353
+      },
+      {
+        "street": "LONG ISLAND EXPRESSWAY",
+        "crashes": 15308
+      },
+      {
+        "street": "3 AVENUE",
+        "crashes": 15180
+      },
+      {
+        "street": "BROOKLYN QUEENS EXPRESSWAY",
+        "crashes": 14833
+      },
+      {
+        "street": "NORTHERN BOULEVARD",
+        "crashes": 13546
+      },
+      {
+        "street": "FLATBUSH AVENUE",
+        "crashes": 11968
+      },
+      {
+        "street": "LINDEN BOULEVARD",
+        "crashes": 11492
+      }
+    ],
+    "ranking_changed": true,
+    "canonical_answer_changed": false
+  }
+}

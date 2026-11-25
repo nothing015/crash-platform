@@ -126,6 +126,48 @@ def peak_memory_mb():
     return round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1)
 
 
+def container_memory_mb():
+    """Return the container cgroup memory peak when available."""
+    for path in ('/sys/fs/cgroup/memory.peak', '/sys/fs/cgroup/memory.current'):
+        try:
+            with open(path) as f:
+                return round(int(f.read().strip()) / (1024 * 1024), 1)
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+def container_memory_limit_mb():
+    for path in ('/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes'):
+        try:
+            with open(path) as f:
+                value = f.read().strip()
+            if value != 'max':
+                return round(int(value) / (1024 * 1024), 1)
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+def source_checksum():
+    try:
+        with open(os.path.join(RESULTS_DIR, 'data_info.txt')) as f:
+            return next(
+                (line.split(':', 1)[1].strip()
+                 for line in f if line.startswith('SHA256 Checksum:')),
+                None,
+            )
+    except OSError:
+        return None
+
+
+def container_memory_stats():
+    return {
+        'container_memory_peak_mb': container_memory_mb(),
+        'container_memory_limit_mb': container_memory_limit_mb(),
+    }
+
+
 def write_json(path, data, indent=2):
     """Write atomically, so other programs never read a half-written file."""
     os.makedirs(os.path.dirname(path), exist_ok=True)
@@ -144,3 +186,14 @@ def write_csv(path, header, rows):
         writer.writerow(header)
         writer.writerows(rows)
     os.replace(tmp, path)
+
+
+def append_csv_row(path, header, row):
+    """Append one time-series sample, adding the header only for a new file."""
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    needs_header = not os.path.exists(path) or os.path.getsize(path) == 0
+    with open(path, 'a', newline='') as f:
+        writer = csv.writer(f)
+        if needs_header:
+            writer.writerow(header)
+        writer.writerow(row)

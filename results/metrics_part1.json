@@ -1,6 +1,10 @@
 {
-  "total_rows": 2305623,
+  "total_rows": 2307813,
+  "rows_in": 2307963,
+  "rows_out": 2307813,
+  "source_sha256": "0be212dab46f00698a92976349197534dc652ed3000660d07167469116d05e36",
   "null_crash_ts": 0,
-  "null_borough": 674935,
-  "null_on_street_name": 510899
+  "null_borough": 674866,
+  "null_on_street_name": 511625,
+  "total_persons_injured": 780859
 }

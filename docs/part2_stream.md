@@ -43,8 +43,9 @@ Latest hour in this run (2026-11-03 23:00): Queens 3, unknown borough 1, and 0 i
 
 - **Missing boroughs.** 674,862 rows (29.3%) have no borough. They are counted as UNKNOWN instead of being dropped, so the latest-hour total stays correct but the per-borough numbers are lower bounds.
 - **Time zone.** CRASH DATE and CRASH TIME are New York local time. Part 1 parses them with Spark's session time zone set to UTC, which keeps the clock reading unchanged, and the stream carries that value as `YYYY-MM-DDTHH:MM:SS`. Hours in question 3 are therefore New York local hours, matching question 2. The format is the same across the team, but the values are not true UTC instants.
-- **Snapshot.** These numbers use the dataset downloaded on 2026-11-08 (2,303,506 rows). The proposal and the committed Part 1 results use the 2026-10-04 download (2,269,188 rows).
-- **No disorder in the replay.** Rows are sorted before they are sent, so a late row never occurs in practice. Handling of late rows is covered by unit tests only.
+- **Snapshot.** These results are a historical run on the 2026-11-08 download (2,303,506 rows). The proposal and committed Part 1 results at the time used the 2026-10-04 download (2,269,188 rows); see Part 4 for the latest full-data run.
+- **Committed sample.** `sample_data/` is a separate, older 100,000-row fixture and contains one row without a crash timestamp, which the producer counts as dropped. The current full-data quality run had no unparseable timestamps. `scripts/run_all.sh` uses the current validated dataset for its quick 300-row stream instead of this committed fixture.
+- **No disorder in the replay.** Rows are sorted before they are sent, so a late row does not occur in the normal replay. The Part 4 fault-injection check sends a late row and verifies it is counted.
 - **Repeated replays.** Replaying into the same topic would add the rows again. The demo scripts avoid this with a new topic for every run.
 
 ## Reproducing it

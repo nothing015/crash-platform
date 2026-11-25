@@ -5,6 +5,7 @@
 It reads every table back and compares it, row by row, with the result file it was loaded from.
 """
 import csv
+import json
 import os
 import sys
 from datetime import datetime
@@ -68,7 +69,15 @@ def main():
     for name, ok, detail in checks:
         print(f"{'PASS' if ok else 'FAIL'}  {name}" + (f'  ({detail})' if detail else ''))
         failed += 0 if ok else 1
-    print(f'\n{len(checks) - failed} of {len(checks)} checks passed')
+    summary = {
+        'passed': len(checks) - failed,
+        'failed': failed,
+        'total': len(checks),
+        'status': 'pass' if failed == 0 else 'fail',
+    }
+    with open(os.path.join(RESULTS_DIR, 'serve_check_results.json'), 'w') as f:
+        json.dump(summary, f, indent=2)
+    print(f'\n{summary["passed"]} of {summary["total"]} checks passed')
     sys.exit(1 if failed else 0)
 
 

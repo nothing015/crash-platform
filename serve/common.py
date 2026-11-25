@@ -35,3 +35,25 @@ def connect(timeout=60):
                 raise SystemExit(f'FAIL: cannot reach the database at {DATABASE_URL.split("@")[-1]}. '
                                  'Start it with: docker compose up -d db')
             time.sleep(1)
+
+
+def container_memory_mb():
+    for path in ('/sys/fs/cgroup/memory.peak', '/sys/fs/cgroup/memory.current'):
+        try:
+            with open(path) as f:
+                return round(int(f.read().strip()) / (1024 * 1024), 1)
+        except (OSError, ValueError):
+            continue
+    return None
+
+
+def container_memory_limit_mb():
+    for path in ('/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes'):
+        try:
+            with open(path) as f:
+                value = f.read().strip()
+            if value != 'max':
+                return round(int(value) / (1024 * 1024), 1)
+        except (OSError, ValueError):
+            continue
+    return None

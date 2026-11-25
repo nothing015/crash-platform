@@ -10,11 +10,13 @@ import json
 import os
 import sys
 import time
+from datetime import datetime, timezone
 
 from confluent_kafka import Producer
 
 from common import (DEFAULT_TOPIC, RESULTS_DIR, client_config, ensure_topic, load_table,
-                    peak_memory_mb, rows_per_second, wait_for_kafka, write_json)
+                    container_memory_limit_mb, container_memory_mb, peak_memory_mb, rows_per_second,
+                    container_memory_stats, source_checksum, wait_for_kafka, write_json)
 
 
 def producer_config():
@@ -126,6 +128,7 @@ def main():
     sent = 0
     completed = True
     began = time.monotonic()
+    began_at = datetime.now(timezone.utc)
     try:
         sent = replay(table, producer, args.topic, args.speedup, stats)
     except KeyboardInterrupt:
@@ -136,11 +139,17 @@ def main():
 
     metrics = {
         'source': args.source, 'limit': args.limit, 'topic': args.topic, 'speedup': args.speedup,
+        'started_at': began_at.isoformat(),
+        'finished_at': datetime.now(timezone.utc).isoformat(),
+        'source_sha256': source_checksum(),
         'rows_read': rows_read, 'rows_dropped_null_ts': dropped, 'rows_planned': n,
         'rows_sent': sent, 'rows_delivered': stats['delivered'], 'rows_failed': stats['failed'],
         'completed': completed, 'seconds': round(elapsed, 1),
         'rows_per_second': rows_per_second(stats['delivered'], elapsed),
         'peak_memory_mb': peak_memory_mb(),
+        'container_memory_peak_mb': container_memory_mb(),
+        'container_memory_limit_mb': container_memory_limit_mb(),
+        **container_memory_stats(),
     }
     write_json(os.path.join(RESULTS_DIR, 'stream_producer_metrics.json'), metrics)
     print(f"Done: sent {sent:,}, delivered {stats['delivered']:,}, failed {stats['failed']:,} "
