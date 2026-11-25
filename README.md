@@ -2,7 +2,7 @@
 
 CPS 853 Team 2 project: a small data platform on the NYC Motor Vehicle Collisions dataset (about 2.27 million rows) from NYC Open Data. It answers three questions: which ten streets have the most crashes, at what hour of the day the most people are injured, and how many crashes happened in each borough in the latest hour.
 
-**Status:** Part 1 (store and batch), Part 2 (stream) and Part 3 (serve) are ready. Part 4 (quality and monitoring) is in progress.
+**Status:** Parts 1–4 are implemented. The full-data pipeline and monitoring checks have been run successfully.
 
 ## Before you start
 
@@ -21,7 +21,19 @@ cd crash-platform
 
 ## Quick start
 
-From the `crash-platform` folder, run these three commands one at a time:
+From the `crash-platform` folder, run the complete pipeline:
+
+```
+./scripts/run_all.sh
+```
+
+`run_all.sh` runs Part 1, the stream fault-injection checks, Part 2, Part 3 and the cross-part checker. By default Part 2 replays 300 rows from the current validated dataset. To stream the complete accepted dataset instead (several minutes), run `FULL_STREAM=1 ./scripts/run_all.sh`. The first run downloads the CSV (about 540 MB, skipped if already present) and builds the Docker images.
+
+Part 1 validates the raw rows and quarantines rejected records. Quality threshold breaches are reported in the quality report and dashboard but do not, by themselves, stop Part 1. To view monitoring after a run, start `./scripts/run_dashboard.sh` and open <http://localhost:8050>.
+
+### Run the three parts manually
+
+From the `crash-platform` folder, run these commands one at a time:
 
 ```
 ./scripts/start.sh
@@ -29,9 +41,11 @@ From the `crash-platform` folder, run these three commands one at a time:
 ./scripts/run_serve.sh
 ```
 
-1. **`start.sh` runs Part 1 (store and batch).** It downloads the data (about 540 MB, skipped if it is already there), then in Docker converts the CSV to Parquet and ORC in `data/lake/` and prints the file sizes before and after, writes a 100,000-row sample for Part 2, answers questions 1 and 2 from the Parquet files, and checks the outputs. It is done when the last line says `8 of 8 checks passed`. The first run also builds the Spark image, so it takes longer.
-2. **`run_stream_demo.sh` runs Part 2 (stream).** It starts Kafka, starts a consumer, and has a producer replay 300 crash rows into Kafka in event-time order (one event hour per second). The consumer prints each row it receives and a `>>` line with crashes per borough whenever an hour closes, which answers question 3. It takes under a minute and is done when the last line says `9 of 9 checks passed`.
-3. **`run_serve.sh` runs Part 3 (serve).** It starts Postgres, loads the four result files from Parts 1 and 2 into one table each, answers all three questions from the database, and checks every table against its file. It takes under a minute and is done when the last line says `10 of 10 checks passed`.
+1. **`start.sh` runs Part 1 (store and batch).** It downloads the data (about 540 MB, skipped if it is already present), validates the raw CSV, quarantines rejected rows, converts the accepted rows to Parquet and ORC in `data/lake/`, writes a 100,000-row sample for Part 2, and answers questions 1 and 2 from the Parquet files. It is done when the last line says `10 of 10 checks passed`. The first run also builds the Spark image, so it takes longer.
+2. **`run_stream_demo.sh` runs Part 2 (stream).** By default, it starts Kafka and a consumer, then a producer replays the first 300 rows from the committed `sample_data/` fixture in event-time order (one event hour per second). The consumer answers question 3 and the stream checker reports `9 of 9 checks passed`. It takes under a minute. Do not reuse an old topic for a replay; the script creates a new topic for each run.
+3. **`run_serve.sh` runs Part 3 (serve).** It starts Postgres, loads the result files from Parts 1 and 2, answers all three questions from the database, and checks every table against its file. It is done when the last line says `10 of 10 checks passed`.
+
+The complete `./scripts/run_all.sh` runner differs from the manual Part 2 command in one important way: in its default 300-row mode, it streams the first 300 rows from the **current validated dataset** rather than the older committed `sample_data/` fixture. It also runs the stream fault-injection check and the cross-part checker. Use `FULL_STREAM=1 ./scripts/run_all.sh` to stream every accepted row.
 
 ## More options
 
@@ -53,6 +67,8 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 
 **Part 3 database:** to look at the tables yourself, run `docker compose exec db psql -U crash crashes` (type `\dt` to list them, `\q` to quit). From a tool on your laptop, such as a VS Code PostgreSQL extension, connect to host `localhost`, port `5433`, database `crashes`, user `crash`, password `crash`. Run `./scripts/run_serve.sh` again after any new Part 1 or Part 2 run, since the database only changes when it loads. To delete the database and start fresh: `docker compose down -v`. Design, results and limitations are in `docs/part3_serve.md`.
 
+**Part 4 quality and monitoring:** `jobs/quality.py` runs nine row-level checks before conversion, with additional volume and missingness-drift checks. Rejected rows are retained in `data/quarantine/quality_failures/`; accepted rows feed the answers from `data/lake/quality_validated/`. The report lists failed-row counts and thresholds. Threshold breaches are reported but do not stop Part 1 on their own. The dashboard shows check results, stage counts/durations, stream lag, memory, database freshness and run history. See `docs/part4_quality_monitoring.md`.
+
 ## Getting the latest version
 
 - **First time on a computer:** clone the repo (see above).
@@ -67,7 +83,12 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 | --------------------------------- | -------------------------------------------------------------- |
 | `results/q1_top_streets.csv`      | The ten streets with the most crashes                          |
 | `results/q2_injuries_by_hour.csv` | People injured per hour of day                                 |
-| `results/metrics_part1.json`      | Row count and null counts after reading the CSV                |
+| `results/metrics_part1.json`      | Raw input and accepted row counts, plus null counts            |
+| `results/quality_report.json`     | Per-rule failed counts, thresholds, run status, and row reconciliation |
+| `results/stage_metrics.json`      | Rows in and out at each pipeline stage                         |
+| `results/pipeline_check_report.json` | Cross-part checksum, count, freshness and answer checks     |
+| `results/stream_lag.csv`          | Stream offset, lag and throughput samples over time            |
+| `results/container_memory.csv`   | Container memory snapshots by pipeline stage                   |
 | `results/format_sizes.json`       | Sizes of the CSV, Parquet and ORC outputs                      |
 | `results/format_comparison.csv`   | Parquet vs ORC: size, conversion time, query times             |
 | `results/layout_comparison.csv`   | Three partitioning layouts: size, files, write and query times |
@@ -76,8 +97,10 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 | `results/q3_latest_hour.csv`      | Question 3: crashes per borough in the latest hour             |
 | `results/q3_crashes_per_borough_hour.csv` | Crashes for every hour and borough                     |
 | `results/stream_*_metrics.json`   | Part 2 rows, throughput, consumer lag, peak memory             |
+| `data/quarantine/quality_failures/` | Rejected source rows with the rule IDs that failed          |
+| `data/lake/quality_validated/`    | Accepted source rows used by the downstream pipeline          |
 | `data/lake/`                      | Parquet, ORC and the Part 2 sample (not in git)                |
-| Postgres `crashes` database       | The four result tables and a `load_log` table (Part 3, not in git) |
+| Postgres `crashes` database       | Answer tables, `load_log`, and per-run `pipeline_runs` and `quality_results` history |
 
 ## Troubleshooting
 
@@ -94,13 +117,16 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 
 ```
 docker-compose.yml     Spark, plus Kafka (Part 2) and Postgres (Part 3)
-scripts/               start.sh, download_data.sh, run_part1.sh, run_benchmarks.sh,
-                       run_stream_demo.sh, run_restart_demo.sh, run_serve.sh
+scripts/               start.sh, run_all.sh, run_dashboard.sh, run_part1.sh,
+                       run_stream_demo.sh, run_stream_quality.sh,
+                       run_restart_demo.sh, run_serve.sh
 jobs/                  common.py, convert.py, queries.py, bench_formats.py,
-                       bench_layouts.py, check_part1.py
-stream/                producer.py, consumer.py, state.py, check_stream.py, tests
-serve/                 schema.sql, load.py, query.py, check_serve.py
-docs/                  part2_stream.md and part3_serve.md (design and results)
+                       bench_layouts.py, check_part1.py, quality.py
+stream/                producer.py, consumer.py, state.py, inject_bad.py,
+                       check_stream.py, check_stream_quality.py, tests
+serve/                 schema.sql, load.py, query.py, check_serve.py,
+                       check_pipeline.py, monitor.py
+docs/                  part2_stream.md, part3_serve.md, part4_quality_monitoring.md
 sample_data/           100,000-row Parquet sample for Part 2
 results/               small CSV, JSON and text outputs (committed)
 data/                  raw and converted data (not in git)

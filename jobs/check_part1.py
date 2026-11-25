@@ -35,10 +35,19 @@ def check_part1():
     checks = []
     metrics = read_json('metrics_part1.json')
     sizes = read_json('format_sizes.json')
+    quality = read_json('quality_report.json')
     total = metrics['total_rows']
-    checks.append(('At least 1,000,000 rows went through Part 1', total >= 1_000_000, f'{total:,} rows'))
-    checks.append(('Rows verified in CSV, Parquet and ORC match the row count',
-                   sizes['rows_verified'] == total, f"{sizes['rows_verified']:,} verified"))
+    checks.append(('At least 1,000,000 validated rows went through Part 1',
+                   total >= 1_000_000, f'{total:,} rows'))
+    checks.append(('Raw rows equal validated plus quarantined rows',
+                   quality['rows_in'] == quality['rows_out'] + quality['rows_quarantined'],
+                   f"{quality['rows_in']:,} in, {quality['rows_out']:,} accepted, "
+                   f"{quality['rows_quarantined']:,} quarantined"))
+    checks.append(('Rows verified in Parquet and ORC match validated row count',
+                   sizes['rows_verified'] == total == quality['rows_out'],
+                   f"{sizes['rows_verified']:,} verified"))
+    checks.append(('At least four quality rules were evaluated',
+                   len(quality['rules']) >= 4, f"{len(quality['rules'])} rules"))
     checks.append(('Parquet files exist', len(data_files('lake/crashes_parquet', '*.parquet')) > 0,
                    f"{len(data_files('lake/crashes_parquet', '*.parquet'))} files"))
     checks.append(('ORC files exist', len(data_files('lake/crashes_orc', '*.orc')) > 0,

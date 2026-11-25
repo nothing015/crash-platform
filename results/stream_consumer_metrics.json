@@ -1,7 +1,10 @@
 {
-  "topic": "crashes_20261116_003913",
+  "topic": "crashes_20261125_033023",
+  "source_sha256": "0be212dab46f00698a92976349197534dc652ed3000660d07167469116d05e36",
   "messages_consumed": 300,
   "bad_messages": 0,
+  "late_messages": 0,
+  "duplicate_collision_ids": 0,
   "unknown_borough": 69,
   "hours_seen": 16,
   "first_event_ts": "2012-07-01T00:05:00",
@@ -11,7 +14,11 @@
   "next_offset": 300,
   "lag": 0,
   "messages_this_run": 300,
-  "seconds_this_run": 11.5,
-  "messages_per_second": 26.1,
-  "peak_memory_mb": 30.9
+  "seconds_this_run": 14.6,
+  "messages_per_second": 20.6,
+  "peak_memory_mb": 31.0,
+  "container_memory_peak_mb": 19.3,
+  "container_memory_limit_mb": 2048.0,
+  "started_at": "2026-11-25T03:30:25Z",
+  "finished_at": "2026-11-25T03:30:55Z"
 }

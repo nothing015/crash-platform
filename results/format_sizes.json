@@ -1,6 +1,6 @@
 {
-  "csv_bytes": 500309035,
-  "parquet_bytes": 173743543,
-  "orc_bytes": 175952295,
-  "rows_verified": 2305623
+  "csv_bytes": 500813204,
+  "parquet_bytes": 173871904,
+  "orc_bytes": 176193061,
+  "rows_verified": 2307813
 }

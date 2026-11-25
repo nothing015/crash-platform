@@ -1,0 +1,544 @@
+@seth-rishabh ➜ /workspaces/crash-platform (qa) $ ./scripts/run_all.sh
+=== Step 1/2: get the data (skipped if it is already downloaded) ===
+data/raw/crashes.csv already exists, skipping the download (FORCE=1 to download again).
+=== Step 2/2: run Part 1 in Docker ===
+Container crash-platform-spark-run-b54bbd8210d3 Creating 
+Container crash-platform-spark-run-b54bbd8210d3 Created 
+=== 1/4: validate input quality and quarantine flagged rows ===
+Quality rows in: 2,307,963; rows out: 2,307,813; rows quarantined: 150
+PASS  required_schema: 0 rows failed (threshold 0.0)
+PASS  valid_crash_timestamp: 0 rows failed (threshold 2308.0)
+PASS  plausible_timestamp_range: 0 rows failed (threshold 23079.6)
+PASS  nonnegative_integer_counts: 0 rows failed (threshold 2308.0)
+PASS  invalid_count_casts: 0 rows failed (threshold 0.0)
+PASS  valid_borough: 0 rows failed (threshold 2308.0)
+PASS  present_collision_id: 0 rows failed (threshold 0.0)
+PASS  unique_collision_id: 0 rows failed (threshold 23079.6)
+PASS  nyc_coordinates: 150 rows failed (threshold 115398.2)
+Volume check: minimum=pass, previous-run-change=pass
+PASS  borough missing share: 29.2% (baseline 29.3%, allowed 27.3%–31.3%)
+PASS  on_street_name missing share: 22.2% (baseline 22.2%, allowed 20.2%–24.2%)
+Quality elapsed: 176.95 seconds
+=== 2/4: convert the CSV to Parquet and ORC ===
+WARNING: Using incubator modules: jdk.incubator.vector
+Writing Parquet...
+Parquet write took 55.82 seconds
+Writing ORC...
+ORC write took 43.15 seconds
+Writing 100K sorted sample for Part 2...
+Verifying row counts...
+========================================
+Raw CSV Row Count: 2307963
+Validated Rows:    2307813
+Parquet Row Count: 2307813
+ORC Row Count:     2307813
+========================================
+========================================
+File sizes, before (CSV) and after (Parquet, ORC):
+  Format     Size (MB)    vs CSV
+  CSV            477.6     100%
+  Parquet        165.8      35%
+  ORC            168.0      35%
+========================================
+Format sizes saved to /app/results/format_sizes.json
+=== 3/4: answer questions 1 and 2 from the Parquet files ===
+WARNING: Using incubator modules: jdk.incubator.vector
+==================================================
+QUESTION 1: Which ten streets have the most crashes?
+==================================================
+Rule applied: Dropped 511625 rows where on_street_name is null or blank.
+
++--------------------------+-----+
+|on_street_name            |count|
++--------------------------+-----+
+|BROADWAY                  |21624|
+|BELT PARKWAY              |20962|
+|ATLANTIC AVENUE           |17906|
+|LONG ISLAND EXPRESSWAY    |14835|
+|BROOKLYN QUEENS EXPRESSWAY|14542|
+|3 AVENUE                  |14357|
+|NORTHERN BOULEVARD        |13532|
+|GRAND CENTRAL PKWY        |12196|
+|LINDEN BOULEVARD          |11470|
+|FDR DRIVE                 |11287|
++--------------------------+-----+
+
+==================================================
+QUESTION 2: At what hour of the day are the most people injured?
+==================================================
++----------+-------------+
+|crash_hour|total_injured|
++----------+-------------+
+|        17|        53640|
+|        16|        51934|
+|        18|        50320|
+|        15|        49030|
+|        14|        46815|
+|        19|        44086|
+|        20|        39453|
+|        13|        39333|
+|         8|        37430|
+|        12|        36177|
+|        21|        35720|
+|        11|        32833|
+|        22|        32569|
+|         9|        32382|
+|         0|        30502|
+|        10|        29662|
+|        23|        28168|
+|         7|        25188|
+|         6|        18287|
+|         1|        16427|
+|         4|        13454|
+|         5|        13034|
+|         2|        12951|
+|         3|        11464|
++----------+-------------+
+
+Results saved to results/q1_top_streets.csv and results/q2_injuries_by_hour.csv
+
+Running cross-check with quality-validated input...
+Q1 Parquet matches validated input: True
+Q2 Parquet matches validated input: True
+Street normalization changes the top-ten ranking: True
+=== 4/4: check the outputs ===
+PASS  At least 1,000,000 validated rows went through Part 1  (2,307,813 rows)
+PASS  Raw rows equal validated plus quarantined rows  (2,307,963 in, 2,307,813 accepted, 150 quarantined)
+PASS  Rows verified in Parquet and ORC match validated row count  (2,307,813 verified)
+PASS  At least four quality rules were evaluated  (9 rules)
+PASS  Parquet files exist  (8 files)
+PASS  ORC files exist  (8 files)
+PASS  Sample for Part 2 exists
+PASS  Parquet is smaller than the raw CSV  (35% of the CSV size)
+PASS  Question 1 result has 10 rows  (10 rows)
+PASS  Question 2 result has 24 hours  (24 rows)
+
+10 of 10 checks passed
+Listening on topic 'crash_quality_20261125_033012'. Press Ctrl+C to stop.
+Sent 6 stream QA messages to crash_quality_20261125_033012
+No new messages, stopping.
+============================================================
+Latest hour: 2012-07-01 01:00  BRONX 1
+Consumed 2 messages (4 unreadable, 0 with no borough) over 2 hours in 5.6 s
+Results: results/q3_latest_hour.csv, results/q3_crashes_per_borough_hour.csv, results/stream_consumer_metrics.json
+PASS  Exactly four malformed/duplicate messages reported (4)
+PASS  Duplicate collision ID counted once (1)
+PASS  Late event counted without rewinding latest hour (1)
+PASS  Q3 contains only the two unique valid crash events ({('2012-07-01T00:00:00', 'QUEENS'): 1, ('2012-07-01T01:00:00', 'BRONX'): 1})
+
+4 of 4 stream QA checks passed
+=== 1/4: start Kafka ===
+=== 2/4: start the consumer (it waits for Kafka and for the first message) ===
+=== 3/4: replay 300 rows from the full data at 3600x into topic crashes_20261125_033023 ===
+Listening on topic 'crashes_20261125_033023'. Press Ctrl+C to stop.
+Source: full | rows read: 2,307,813 | dropped (no event time): 0 | to replay: 300
+Event time: 2012-07-01 00:05 to 2012-07-01 15:10 (0.6 days)
+Speedup 3,600x: about 15 seconds (0.3 minutes), about 19.9 rows per second
+2012-07-01T00:05:00  UNKNOWN        -
+2012-07-01T00:05:00  MANHATTAN      11 AVENUE
+2012-07-01T00:10:00  BROOKLYN       WEST 3 STREET
+2012-07-01T00:10:00  UNKNOWN        -
+2012-07-01T00:20:00  BROOKLYN       4 AVENUE
+2012-07-01T00:21:00  UNKNOWN        -
+2012-07-01T00:22:00  BRONX          EAST 161 STREET
+2012-07-01T00:23:00  BROOKLYN       STRICKLAND AVENUE
+2012-07-01T00:25:00  QUEENS         GRND CNTRL PARKWAY SR WEST
+2012-07-01T00:30:00  UNKNOWN        -
+2012-07-01T00:30:00  MANHATTAN      READE STREET
+2012-07-01T00:30:00  BROOKLYN       SAINT JOHNS PLACE
+2012-07-01T00:37:00  MANHATTAN      PARK AVENUE
+2012-07-01T00:44:00  BROOKLYN       56 STREET
+2012-07-01T00:45:00  MANHATTAN      EAST 57 STREET
+2012-07-01T00:45:00  QUEENS         103 AVENUE
+2012-07-01T00:45:00  QUEENS         140 AVENUE
+>> 2012-07-01 00:00  BRONX 1, BROOKLYN 5, MANHATTAN 4, QUEENS 3, UNKNOWN 4
+2012-07-01T01:00:00  BRONX          EAST 165 STREET
+2012-07-01T01:00:00  UNKNOWN        CANEY LANE
+2012-07-01T01:00:00  QUEENS         BAISLEY BOULEVARD
+2012-07-01T01:01:00  BROOKLYN       4 AVENUE
+2012-07-01T01:03:00  UNKNOWN        HYLAN BOULEVARD
+2012-07-01T01:10:00  BROOKLYN       FLATBUSH AVENUE
+2012-07-01T01:15:00  UNKNOWN        68 STREET
+2012-07-01T01:16:00  MANHATTAN      GROVE STREET
+2012-07-01T01:20:00  BROOKLYN       LIBERTY AVENUE
+2012-07-01T01:20:00  UNKNOWN        ROCKAWAY PARKWAY
+2012-07-01T01:20:00  BRONX          EAST 233 STREET
+2012-07-01T01:30:00  QUEENS         33 STREET
+2012-07-01T01:30:00  UNKNOWN        CLAY AVENUE
+2012-07-01T01:45:00  MANHATTAN      WEST 39 STREET
+2012-07-01T01:52:00  UNKNOWN        GREENPOINT AVENUE
+2012-07-01T01:53:00  QUEENS         FARMERS BOULEVARD
+2012-07-01T01:55:00  UNKNOWN        -
+>> 2012-07-01 01:00  BRONX 2, BROOKLYN 3, MANHATTAN 2, QUEENS 3, UNKNOWN 7
+2012-07-01T02:00:00  UNKNOWN        HORACE HARDING EXPRESSWAY
+2012-07-01T02:01:00  QUEENS         NORTHERN BOULEVARD
+2012-07-01T02:04:00  MANHATTAN      EAST 39 STREET
+sent 38 rows | event time 2012-07-01 02:10 | delivered 37
+2012-07-01T02:10:00  MANHATTAN      EAST HOUSTON STREET
+2012-07-01T02:14:00  BROOKLYN       LINDEN BOULEVARD
+2012-07-01T02:20:00  BROOKLYN       AVENUE P
+2012-07-01T02:30:00  QUEENS         GIPSON STREET
+2012-07-01T02:30:00  BRONX          CITY ISLAND AVENUE
+2012-07-01T02:30:00  STATEN ISLAND  OSGOOD AVENUE
+2012-07-01T02:30:00  MANHATTAN      EAST 61 STREET
+2012-07-01T02:35:00  BROOKLYN       18 AVENUE
+2012-07-01T02:45:00  BROOKLYN       ATLANTIC AVENUE
+2012-07-01T02:45:00  BROOKLYN       EAST 29 STREET
+2012-07-01T02:50:00  BRONX          EAST 161 STREET
+2012-07-01T02:55:00  MANHATTAN      EAST 45 STREET
+>> 2012-07-01 02:00  BRONX 2, BROOKLYN 5, MANHATTAN 4, QUEENS 2, STATEN ISLAND 1, UNKNOWN 1
+2012-07-01T03:00:00  STATEN ISLAND  ARLINGTON PLACE
+2012-07-01T03:00:00  UNKNOWN        YELLOWSTONE BOULEVARD
+2012-07-01T03:00:00  UNKNOWN        -
+2012-07-01T03:10:00  MANHATTAN      SULLIVAN STREET
+2012-07-01T03:10:00  BROOKLYN       75 STREET
+2012-07-01T03:15:00  BROOKLYN       SNYDER AVENUE
+2012-07-01T03:15:00  BROOKLYN       TOMPKINS AVENUE
+2012-07-01T03:15:00  STATEN ISLAND  MCCLEAN AVENUE
+2012-07-01T03:16:00  BROOKLYN       ASHFORD STREET
+2012-07-01T03:17:00  QUEENS         21 STREET
+2012-07-01T03:19:00  QUEENS         METROPOLITAN AVENUE
+2012-07-01T03:20:00  MANHATTAN      2 AVENUE
+2012-07-01T03:30:00  BROOKLYN       KIMBALL STREET
+2012-07-01T03:30:00  QUEENS         JAMAICA AVENUE
+2012-07-01T03:30:00  BROOKLYN       ATLANTIC AVENUE
+2012-07-01T03:30:00  MANHATTAN      SAINT NICHOLAS AVENUE
+2012-07-01T03:45:00  QUEENS         NORTHERN BOULEVARD
+2012-07-01T03:50:00  MANHATTAN      GROVE STREET
+2012-07-01T03:58:00  MANHATTAN      EAST HOUSTON STREET
+>> 2012-07-01 03:00  BROOKLYN 6, MANHATTAN 5, QUEENS 4, STATEN ISLAND 2, UNKNOWN 2
+2012-07-01T04:00:00  QUEENS         BROADWAY
+2012-07-01T04:10:00  UNKNOWN        ROCKAWAY FREEWAY
+sent 71 rows | event time 2012-07-01 04:18 | delivered 70
+2012-07-01T04:18:00  STATEN ISLAND  WINCHESTER AVENUE
+2012-07-01T04:31:00  UNKNOWN        -
+2012-07-01T04:40:00  MANHATTAN      10 AVENUE
+2012-07-01T04:40:00  MANHATTAN      CENTRE STREET
+2012-07-01T04:40:00  UNKNOWN        -
+2012-07-01T04:44:00  MANHATTAN      6 AVENUE
+2012-07-01T04:45:00  UNKNOWN        -
+2012-07-01T04:50:00  UNKNOWN        SOUTH ROAD
+2012-07-01T04:50:00  MANHATTAN      EAST 6 STREET
+>> 2012-07-01 04:00  MANHATTAN 4, QUEENS 1, STATEN ISLAND 1, UNKNOWN 5
+2012-07-01T05:00:00  BROOKLYN       MANHATTAN AVENUE
+2012-07-01T05:00:00  UNKNOWN        -
+2012-07-01T05:00:00  MANHATTAN      EAST 43 STREET
+2012-07-01T05:00:00  UNKNOWN        -
+2012-07-01T05:17:00  BROOKLYN       MC DONALD AVENUE
+2012-07-01T05:23:00  QUEENS         STEINWAY STREET
+2012-07-01T05:30:00  QUEENS         BLEECKER STREET
+2012-07-01T05:30:00  BROOKLYN       HENRY STREET
+2012-07-01T05:30:00  QUEENS         38 STREET
+2012-07-01T05:40:00  QUEENS         35 AVENUE
+2012-07-01T05:45:00  UNKNOWN        -
+2012-07-01T05:48:00  BRONX          PAULDING AVENUE
+2012-07-01T05:50:00  MANHATTAN      9 AVENUE
+>> 2012-07-01 05:00  BRONX 1, BROOKLYN 3, MANHATTAN 2, QUEENS 4, UNKNOWN 3
+2012-07-01T06:15:00  UNKNOWN        -
+2012-07-01T06:15:00  QUEENS         52 AVENUE
+sent 95 rows | event time 2012-07-01 06:27 | delivered 94
+2012-07-01T06:27:00  BROOKLYN       EAST 16 STREET
+2012-07-01T06:30:00  QUEENS         ASTORIA BOULEVARD
+2012-07-01T06:30:00  MANHATTAN      AMSTERDAM AVENUE
+2012-07-01T06:30:00  UNKNOWN        -
+2012-07-01T06:50:00  BRONX          SEDGWICK AVENUE
+2012-07-01T06:55:00  QUEENS         HARMAN STREET
+2012-07-01T06:55:00  BROOKLYN       FRANKLIN AVENUE
+>> 2012-07-01 06:00  BRONX 1, BROOKLYN 2, MANHATTAN 1, QUEENS 3, UNKNOWN 2
+2012-07-01T07:00:00  UNKNOWN        BEACH 54 STREET
+2012-07-01T07:02:00  MANHATTAN      EAST 42 STREET
+2012-07-01T07:05:00  STATEN ISLAND  VICTORY BOULEVARD
+2012-07-01T07:10:00  QUEENS         MOTT AVENUE
+2012-07-01T07:15:00  UNKNOWN        -
+2012-07-01T07:20:00  MANHATTAN      EAST 89 STREET
+2012-07-01T07:30:00  BROOKLYN       OCEAN PARKWAY
+2012-07-01T07:30:00  BROOKLYN       LEFFERTS AVENUE
+2012-07-01T07:45:00  BROOKLYN       ATLANTIC AVENUE
+>> 2012-07-01 07:00  BROOKLYN 3, MANHATTAN 2, QUEENS 1, STATEN ISLAND 1, UNKNOWN 2
+2012-07-01T08:00:00  BROOKLYN       HALSEY STREET
+2012-07-01T08:00:00  QUEENS         LANGSTON AVENUE
+2012-07-01T08:00:00  BRONX          HULL AVENUE
+2012-07-01T08:03:00  UNKNOWN        EASTERN PARKWAY
+2012-07-01T08:07:00  MANHATTAN      EAST 3 STREET
+2012-07-01T08:08:00  BROOKLYN       RALPH AVENUE
+2012-07-01T08:15:00  QUEENS         87 STREET
+sent 118 rows | event time 2012-07-01 08:27 | delivered 117
+2012-07-01T08:27:00  UNKNOWN        -
+2012-07-01T08:27:00  BROOKLYN       DECATUR STREET
+2012-07-01T08:30:00  UNKNOWN        WEST 181 STREET
+2012-07-01T08:34:00  BROOKLYN       EASTERN PARKWAY
+2012-07-01T08:37:00  QUEENS         SOUTH ROAD
+2012-07-01T08:43:00  UNKNOWN        HORACE HARDING EXPRESSWAY
+2012-07-01T08:58:00  BRONX          BRONX BOULEVARD
+>> 2012-07-01 08:00  BRONX 2, BROOKLYN 4, MANHATTAN 1, QUEENS 3, UNKNOWN 4
+2012-07-01T09:00:00  MANHATTAN      EAST 50 STREET
+2012-07-01T09:00:00  QUEENS         38 STREET
+2012-07-01T09:15:00  STATEN ISLAND  CASTLETON AVENUE
+2012-07-01T09:15:00  QUEENS         94 STREET
+2012-07-01T09:15:00  QUEENS         219 STREET
+2012-07-01T09:15:00  BROOKLYN       PACIFIC STREET
+2012-07-01T09:20:00  UNKNOWN        FOOD CENTER DRIVE
+2012-07-01T09:24:00  QUEENS         LINDEN BOULEVARD
+2012-07-01T09:30:00  BROOKLYN       61 STREET
+2012-07-01T09:30:00  QUEENS         ROOSEVELT AVENUE
+2012-07-01T09:30:00  BRONX          HUNTER AVENUE
+2012-07-01T09:30:00  BROOKLYN       JAMAICA AVENUE
+2012-07-01T09:39:00  BROOKLYN       TILDEN AVENUE
+2012-07-01T09:40:00  MANHATTAN      DIVISION STREET
+2012-07-01T09:40:00  QUEENS         23 AVENUE
+2012-07-01T09:40:00  QUEENS         35 AVENUE
+2012-07-01T09:40:00  QUEENS         31 AVENUE
+2012-07-01T09:40:00  BRONX          METROPOLITAN AVENUE
+2012-07-01T09:45:00  UNKNOWN        -
+2012-07-01T09:50:00  QUEENS         265 STREET
+2012-07-01T09:50:00  MANHATTAN      WEST SIDE HIGHWAY
+2012-07-01T09:57:00  MANHATTAN      1 AVENUE
+2012-07-01T09:59:00  BRONX          EAST 167 STREET
+>> 2012-07-01 09:00  BRONX 3, BROOKLYN 4, MANHATTAN 4, QUEENS 9, STATEN ISLAND 1, UNKNOWN 2
+2012-07-01T10:00:00  QUEENS         -
+2012-07-01T10:00:00  MANHATTAN      WEST 47 STREET
+2012-07-01T10:02:00  QUEENS         BEACH 209 STREET
+2012-07-01T10:11:00  MANHATTAN      ALLEN STREET
+2012-07-01T10:15:00  QUEENS         71 AVENUE
+2012-07-01T10:20:00  MANHATTAN      EAST 106 STREET
+sent 154 rows | event time 2012-07-01 10:30 | delivered 153
+2012-07-01T10:30:00  QUEENS         160 AVENUE
+2012-07-01T10:30:00  QUEENS         160 AVENUE
+2012-07-01T10:35:00  MANHATTAN      PARK AVENUE
+2012-07-01T10:40:00  MANHATTAN      CANAL STREET
+2012-07-01T10:40:00  QUEENS         MAIN STREET
+2012-07-01T10:40:00  QUEENS         74 STREET
+2012-07-01T10:41:00  BROOKLYN       NOSTRAND AVENUE
+2012-07-01T10:45:00  QUEENS         -
+2012-07-01T10:50:00  BROOKLYN       STUART STREET
+>> 2012-07-01 10:00  BROOKLYN 2, MANHATTAN 5, QUEENS 8
+2012-07-01T11:00:00  UNKNOWN        -
+2012-07-01T11:05:00  QUEENS         98 PLACE
+2012-07-01T11:05:00  BROOKLYN       AVENUE N
+2012-07-01T11:10:00  BROOKLYN       OCEAN PARKWAY
+2012-07-01T11:15:00  MANHATTAN      EAST 48 STREET
+2012-07-01T11:15:00  BROOKLYN       TROY AVENUE
+2012-07-01T11:15:00  MANHATTAN      AMSTERDAM AVENUE
+2012-07-01T11:15:00  MANHATTAN      CANAL STREET
+2012-07-01T11:20:00  MANHATTAN      EAST 14 STREET
+2012-07-01T11:25:00  MANHATTAN      BOWERY
+2012-07-01T11:30:00  UNKNOWN        -
+2012-07-01T11:30:00  UNKNOWN        -
+2012-07-01T11:30:00  QUEENS         DITMARS BOULEVARD
+2012-07-01T11:31:00  QUEENS         21 ROAD
+2012-07-01T11:35:00  UNKNOWN        -
+2012-07-01T11:40:00  BROOKLYN       AVENUE V
+2012-07-01T11:40:00  QUEENS         UNION TURNPIKE
+2012-07-01T11:40:00  MANHATTAN      EAST 39 STREET
+2012-07-01T11:40:00  MANHATTAN      WARREN STREET
+2012-07-01T11:45:00  BROOKLYN       BRIGHTON BEACH AVENUE
+2012-07-01T11:45:00  UNKNOWN        -
+2012-07-01T11:45:00  STATEN ISLAND  AMBOY ROAD
+2012-07-01T11:50:00  BROOKLYN       MCDONALD AVENUE
+2012-07-01T11:50:00  STATEN ISLAND  GUILFORD STREET
+2012-07-01T11:50:00  BROOKLYN       VAN SICLEN AVENUE
+2012-07-01T11:55:00  MANHATTAN      WEST 39 STREET
+2012-07-01T11:55:00  STATEN ISLAND  FOREST AVENUE
+>> 2012-07-01 11:00  BROOKLYN 7, MANHATTAN 8, QUEENS 4, STATEN ISLAND 3, UNKNOWN 5
+2012-07-01T12:00:00  UNKNOWN        -
+2012-07-01T12:00:00  UNKNOWN        -
+2012-07-01T12:00:00  BROOKLYN       8 AVENUE
+2012-07-01T12:00:00  MANHATTAN      MULBERRY STREET
+2012-07-01T12:00:00  MANHATTAN      9 AVENUE
+2012-07-01T12:06:00  QUEENS         BEACH 116 STREET
+2012-07-01T12:07:00  BROOKLYN       MANHATTAN AVENUE
+2012-07-01T12:07:00  BROOKLYN       MANHATTAN AVENUE
+2012-07-01T12:10:00  UNKNOWN        -
+2012-07-01T12:10:00  BROOKLYN       CONEY ISLAND AVENUE
+2012-07-01T12:12:00  MANHATTAN      EAST 37 STREET
+2012-07-01T12:15:00  BROOKLYN       GRAND STREET
+2012-07-01T12:15:00  UNKNOWN        -
+2012-07-01T12:15:00  BROOKLYN       SCHOLES STREET
+2012-07-01T12:18:00  MANHATTAN      BATTERY PLACE
+2012-07-01T12:20:00  QUEENS         31 AVENUE
+2012-07-01T12:20:00  UNKNOWN        HYLAN BOULEVARD
+2012-07-01T12:20:00  BROOKLYN       NEPTUNE AVENUE
+2012-07-01T12:25:00  BRONX          ZULETTE AVENUE
+sent 209 rows | event time 2012-07-01 12:30 | delivered 208
+2012-07-01T12:30:00  MANHATTAN      MADISON AVENUE
+2012-07-01T12:30:00  STATEN ISLAND  PAGE AVENUE
+2012-07-01T12:34:00  MANHATTAN      3 AVENUE
+2012-07-01T12:40:00  BROOKLYN       4 AVENUE
+2012-07-01T12:40:00  STATEN ISLAND  RICHMOND TERRACE
+2012-07-01T12:43:00  QUEENS         QUEENS BOULEVARD
+2012-07-01T12:44:00  UNKNOWN        HORACE HARDING EXPRESSWAY
+2012-07-01T12:44:00  BROOKLYN       LINDEN BOULEVARD
+2012-07-01T12:45:00  MANHATTAN      WEST 46 STREET
+2012-07-01T12:45:00  BROOKLYN       INDIA STREET
+2012-07-01T12:50:00  BRONX          EASTCHESTER ROAD
+2012-07-01T12:52:00  BROOKLYN       EASTERN PARKWAY
+2012-07-01T12:52:00  BROOKLYN       IRVING AVENUE
+2012-07-01T12:55:00  UNKNOWN        -
+2012-07-01T12:56:00  MANHATTAN      EAST 34 STREET
+2012-07-01T12:57:00  MANHATTAN      EAST 38 STREET
+>> 2012-07-01 12:00  BRONX 2, BROOKLYN 12, MANHATTAN 9, QUEENS 3, STATEN ISLAND 2, UNKNOWN 7
+2012-07-01T13:00:00  MANHATTAN      BROADWAY
+2012-07-01T13:00:00  UNKNOWN        GUIDER AVENUE
+2012-07-01T13:00:00  UNKNOWN        95 STREET
+2012-07-01T13:00:00  BRONX          BAYCHESTER AVENUE
+2012-07-01T13:00:00  UNKNOWN        -
+2012-07-01T13:00:00  UNKNOWN        -
+2012-07-01T13:05:00  BRONX          WESTCHESTER AVENUE
+2012-07-01T13:08:00  MANHATTAN      MACDOUGAL STREET
+2012-07-01T13:10:00  QUEENS         58 STREET
+2012-07-01T13:15:00  QUEENS         PITKIN AVENUE
+2012-07-01T13:15:00  MANHATTAN      EAST 57 STREET
+2012-07-01T13:18:00  MANHATTAN      EAST 35 STREET
+2012-07-01T13:20:00  MANHATTAN      EAST 97 STREET
+2012-07-01T13:20:00  UNKNOWN        -
+2012-07-01T13:20:00  BROOKLYN       BRIGHTON BEACH AVENUE
+2012-07-01T13:20:00  QUEENS         149 STREET
+2012-07-01T13:20:00  UNKNOWN        -
+2012-07-01T13:23:00  BRONX          GRAND CONCOURSE
+2012-07-01T13:25:00  MANHATTAN      EAST HOUSTON STREET
+2012-07-01T13:25:00  QUEENS         31 AVENUE
+2012-07-01T13:32:00  UNKNOWN        OAK POINT AVENUE
+2012-07-01T13:42:00  BROOKLYN       TROY AVENUE
+2012-07-01T13:45:00  UNKNOWN        -
+2012-07-01T13:45:00  UNKNOWN        -
+2012-07-01T13:45:00  STATEN ISLAND  -
+2012-07-01T13:49:00  MANHATTAN      COLUMBUS AVENUE
+2012-07-01T13:55:00  UNKNOWN        -
+>> 2012-07-01 13:00  BRONX 3, BROOKLYN 2, MANHATTAN 7, QUEENS 4, STATEN ISLAND 1, UNKNOWN 10
+2012-07-01T14:00:00  BRONX          ALLERTON AVENUE
+2012-07-01T14:00:00  UNKNOWN        -
+2012-07-01T14:00:00  BROOKLYN       AVENUE L
+2012-07-01T14:00:00  BROOKLYN       FULTON STREET
+2012-07-01T14:00:00  MANHATTAN      CENTRAL PARK WEST
+2012-07-01T14:00:00  BROOKLYN       FULTON STREET
+2012-07-01T14:00:00  UNKNOWN        -
+2012-07-01T14:00:00  UNKNOWN        -
+2012-07-01T14:00:00  UNKNOWN        HOYT AVENUE
+2012-07-01T14:00:00  BROOKLYN       OCEAN PARKWAY
+2012-07-01T14:00:00  MANHATTAN      EAST 55 STREET
+2012-07-01T14:10:00  UNKNOWN        -
+2012-07-01T14:10:00  STATEN ISLAND  HYLAN BOULEVARD
+2012-07-01T14:10:00  MANHATTAN      PARK AVENUE
+2012-07-01T14:10:00  UNKNOWN        WEST 14 STREET
+2012-07-01T14:10:00  QUEENS         113 AVENUE
+2012-07-01T14:11:00  UNKNOWN        FLATBUSH AVENUE
+2012-07-01T14:14:00  MANHATTAN      BROADWAY
+2012-07-01T14:14:00  MANHATTAN      EAST 106 STREET
+2012-07-01T14:15:00  UNKNOWN        BRUCKNER BOULEVARD
+2012-07-01T14:15:00  QUEENS         156 STREET
+2012-07-01T14:17:00  UNKNOWN        EAST 12 STREET
+2012-07-01T14:18:00  UNKNOWN        -
+2012-07-01T14:27:00  MANHATTAN      WEST 147 STREET
+sent 277 rows | event time 2012-07-01 14:30 | delivered 275
+2012-07-01T14:30:00  QUEENS         231 STREET
+2012-07-01T14:30:00  BROOKLYN       EASTERN PARKWAY
+2012-07-01T14:30:00  STATEN ISLAND  MANOR ROAD
+2012-07-01T14:30:00  BROOKLYN       39 STREET
+2012-07-01T14:30:00  BROOKLYN       PALMETTO STREET
+2012-07-01T14:30:00  BROOKLYN       EAST 49 STREET
+2012-07-01T14:35:00  BROOKLYN       EAST 85 STREET
+2012-07-01T14:40:00  STATEN ISLAND  UNION AVENUE
+2012-07-01T14:40:00  MANHATTAN      BROADWAY
+2012-07-01T14:45:00  UNKNOWN        -
+2012-07-01T14:50:00  MANHATTAN      5 AVENUE
+2012-07-01T14:52:00  UNKNOWN        -
+2012-07-01T14:55:00  QUEENS         35 AVENUE
+2012-07-01T14:57:00  MANHATTAN      2 AVENUE
+2012-07-01T14:58:00  QUEENS         68 AVENUE
+>> 2012-07-01 14:00  BRONX 1, BROOKLYN 9, MANHATTAN 9, QUEENS 5, STATEN ISLAND 3, UNKNOWN 12
+2012-07-01T15:00:00  BROOKLYN       ATLANTIC AVENUE
+2012-07-01T15:00:00  UNKNOWN        WATER STREET
+2012-07-01T15:00:00  UNKNOWN        -
+2012-07-01T15:00:00  QUEENS         201 STREET
+2012-07-01T15:00:00  MANHATTAN      WEST 69 STREET
+2012-07-01T15:05:00  MANHATTAN      KENMARE STREET
+2012-07-01T15:07:00  QUEENS         40 STREET
+2012-07-01T15:10:00  MANHATTAN      EAST 28 STREET
+2012-07-01T15:10:00  MANHATTAN      BROADWAY
+2012-07-01T15:10:00  UNKNOWN        GRAND CONCOURSE
+Done: sent 300, delivered 300, failed 0 in 15.1 s. Metrics: results/stream_producer_metrics.json
+=== 4/4: wait for the consumer, then check the results ===
+No new messages, stopping.
+============================================================
+Latest hour: 2012-07-01 15:00  BROOKLYN 1, MANHATTAN 4, QUEENS 2, UNKNOWN 3
+Consumed 300 messages (0 unreadable, 69 with no borough) over 16 hours in 29.9 s
+Results: results/q3_latest_hour.csv, results/q3_crashes_per_borough_hour.csv, results/stream_consumer_metrics.json
+PASS  Producer finished its replay  (300 rows sent)
+PASS  No rows failed to deliver  (0 failed)
+PASS  Delivered rows equal sent rows
+PASS  Producer and consumer used the same topic  (crashes_20261125_033023 / crashes_20261125_033023)
+PASS  Consumer received every delivered row  (300 consumed)
+PASS  No unreadable messages  (0 unreadable)
+PASS  Counts in the CSV add up to the messages consumed  (300)
+PASS  Stream counts equal the batch recount from Parquet  (81 hour and borough groups)
+PASS  Latest-hour file matches the last hour in the CSV  (2012-07-01T15:00:00)
+
+9 of 9 checks passed
+=== 1/4: start the database ===
+=== 2/4: load the result files ===
+Loaded        10 rows into q1_top_streets               in 0.04 s
+Loaded        24 rows into q2_injuries_by_hour          in 0.00 s
+Loaded        81 rows into q3_crashes_per_borough_hour  in 0.00 s
+Loaded         6 rows into q3_latest_hour               in 0.00 s
+Load committed.
+=== 3/4: answer the three questions from the database ===
+
+Q1. Which ten streets have the most crashes?
+  rank  street                      crashes
+     1  BROADWAY                     21,624
+     2  BELT PARKWAY                 20,962
+     3  ATLANTIC AVENUE              17,906
+     4  LONG ISLAND EXPRESSWAY       14,835
+     5  BROOKLYN QUEENS EXPRESSWAY   14,542
+     6  3 AVENUE                     14,357
+     7  NORTHERN BOULEVARD           13,532
+     8  GRAND CENTRAL PKWY           12,196
+     9  LINDEN BOULEVARD             11,470
+    10  FDR DRIVE                    11,287
+
+Q2. At what hour of the day are the most people injured?
+  hour_of_day  injured
+           17   53,640
+           16   51,934
+           18   50,320
+           15   49,030
+           14   46,815
+
+Q3. How many crashes happened in each borough in the latest hour?
+  hour              borough        crashes
+  2012-07-01 15:00  BRONX                0
+  2012-07-01 15:00  BROOKLYN             1
+  2012-07-01 15:00  MANHATTAN            4
+  2012-07-01 15:00  QUEENS               2
+  2012-07-01 15:00  STATEN ISLAND        0
+  2012-07-01 15:00  UNKNOWN              3
+
+Last loaded: 2026-11-25 03:31:05 UTC
+=== 4/4: check the database ===
+PASS  q1_top_streets matches results/q1_top_streets.csv  (10 rows)
+PASS  q2_injuries_by_hour matches results/q2_injuries_by_hour.csv  (24 rows)
+PASS  q3_crashes_per_borough_hour matches results/q3_crashes_per_borough_hour.csv  (81 rows)
+PASS  q3_latest_hour matches results/q3_latest_hour.csv  (6 rows)
+PASS  Question 1 has 10 streets  (10 rows)
+PASS  Question 2 has all 24 hours  (24 hours)
+PASS  Latest hour is the last hour in the hourly table  (2012-07-01 15:00)
+PASS  Latest hour lists every borough  (6 boroughs)
+PASS  Latest-hour counts equal the hourly table for that hour  (0 boroughs differ)
+PASS  Last load is recorded for all four tables  (4 tables)
+
+10 of 10 checks passed
+PASS Part 1 and both stream stages used the same source download (0be212dab46f00698a92976349197534dc652ed3000660d07167469116d05e36)
+PASS Sample stream respects its planned limit (300 sent from 2,307,813 read)
+PASS Stream batch-recount check passed (9/9 checks)
+PASS Database table checks passed (10/10 checks)
+PASS Q2 injury total matches validated Part 1 input (780,859 in Q2 / 780,859 in Part 1)
+PASS Q3 hourly counts add up to valid consumed messages (300 hourly crashes / 300 consumed)
+PASS Database was loaded after Part 1 and streaming completed (2026-11-25T03:31:05.404679+00:00)
+
+7 of 7 cross-part checks passed
+
+Pipeline complete. Quality report: results/quality_report.json
+Stage counts: results/stage_metrics.json
+Cross-part checks: results/pipeline_check_report.json
+Container memory samples: results/container_memory.csv
+Start the monitoring dashboard with: ./scripts/run_dashboard.sh

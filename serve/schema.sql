@@ -36,3 +36,27 @@ CREATE TABLE IF NOT EXISTS load_log (
     rows_loaded  integer     NOT NULL,
     seconds      real        NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS pipeline_runs (
+    run_id       text        NOT NULL,
+    part         text        NOT NULL,
+    started_at   timestamptz,
+    seconds      real,
+    rows_in      bigint,
+    rows_out     bigint,
+    peak_mem_mb  real,
+    status       text        NOT NULL CHECK (status IN ('pass', 'warn', 'fail')),
+    details      jsonb       NOT NULL DEFAULT '{}'::jsonb,
+    PRIMARY KEY (run_id, part)
+);
+
+CREATE TABLE IF NOT EXISTS quality_results (
+    run_id     text             NOT NULL,
+    rule       text             NOT NULL,
+    level      text             NOT NULL,
+    value      double precision,
+    threshold  double precision,
+    result     text             NOT NULL,
+    details    jsonb            NOT NULL DEFAULT '{}'::jsonb,
+    PRIMARY KEY (run_id, rule)
+);
