@@ -27,9 +27,15 @@ From the `crash-platform` folder, run the complete pipeline:
 ./scripts/run_all.sh
 ```
 
-`run_all.sh` runs Part 1, the stream fault-injection checks, Part 2, Part 3 and the cross-part checker. By default Part 2 replays 300 rows from the current validated dataset. To stream the complete accepted dataset instead (several minutes), run `FULL_STREAM=1 ./scripts/run_all.sh`. The first run downloads the CSV (about 540 MB, skipped if already present) and builds the Docker images.
+`run_all.sh` runs Part 1, the bad-row check (only if you added rows by hand, see below), the stream fault-injection checks, Part 2, Part 3 and the cross-part checker. By default Part 2 replays 300 rows from the current validated dataset. To stream the complete accepted dataset instead (several minutes), run `FULL_STREAM=1 ./scripts/run_all.sh`. The first run downloads the CSV (about 540 MB, skipped if already present) and builds the Docker images.
 
 Part 1 validates the raw rows and quarantines rejected records. Quality threshold breaches are reported in the quality report and dashboard but do not, by themselves, stop Part 1. To view monitoring after a run, start `./scripts/run_dashboard.sh` and open <http://localhost:8050>.
+
+**Add a bad row by hand.** The first run creates `data/demo/hand_rows.csv` with only the CSV header. Type one or more rows under the header and save the file. On the next `./scripts/run_all.sh`, the nine quality rules run on the full data plus your rows (about 4 extra minutes). It prints each rule's failed-row count next to the normal run's and shows your rows in the quarantine table with the rules they failed. To run only this check: `./scripts/run_bad_row_demo.sh`. The downloaded CSV and the normal results are not changed. This step writes to `results/demo/` and `data/demo/`. An example row that breaks five rules:
+
+```
+11/25/2026,25:99,ATLANTIS,,51.5072,-0.1276,,TEAM 2 DEMO STREET,,,-3,two,0,0,0,0,0,0,Unspecified,,,,,TEAM2-BAD-ROW-1,,,,,
+```
 
 ### Run the three parts manually
 
@@ -97,6 +103,8 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 | `results/q3_latest_hour.csv`      | Question 3: crashes per borough in the latest hour             |
 | `results/q3_crashes_per_borough_hour.csv` | Crashes for every hour and borough                     |
 | `results/stream_*_metrics.json`   | Part 2 rows, throughput, consumer lag, peak memory             |
+| `results/serve_response_times.csv` | Part 3 response time of each question (median of 5 runs, ms)  |
+| `results/demo/quality_report.json` | Quality report of the bad-row check (not in git)              |
 | `data/quarantine/quality_failures/` | Rejected source rows with the rule IDs that failed          |
 | `data/lake/quality_validated/`    | Accepted source rows used by the downstream pipeline          |
 | `data/lake/`                      | Parquet, ORC and the Part 2 sample (not in git)                |
@@ -119,9 +127,9 @@ To kill the consumer in the middle of a replay and check that its restart loses 
 docker-compose.yml     Spark, plus Kafka (Part 2) and Postgres (Part 3)
 scripts/               start.sh, run_all.sh, run_dashboard.sh, run_part1.sh,
                        run_stream_demo.sh, run_stream_quality.sh,
-                       run_restart_demo.sh, run_serve.sh
+                       run_restart_demo.sh, run_serve.sh, run_bad_row_demo.sh
 jobs/                  common.py, convert.py, queries.py, bench_formats.py,
-                       bench_layouts.py, check_part1.py, quality.py
+                       bench_layouts.py, check_part1.py, quality.py, bad_row_demo.py
 stream/                producer.py, consumer.py, state.py, inject_bad.py,
                        check_stream.py, check_stream_quality.py, tests
 serve/                 schema.sql, load.py, query.py, check_serve.py,

@@ -1,5 +1,7 @@
 # Runbook Requirement
 data/
+# Bad-row demo report (scripts/run_bad_row_demo.sh); the normal results stay committed
+results/demo/
 
 # Python / PySpark
 __pycache__/

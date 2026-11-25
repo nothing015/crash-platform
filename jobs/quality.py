@@ -15,6 +15,9 @@ RAW_FILE = f'{ROOT}/data/raw/crashes.csv'
 RESULTS_DIR = f'{ROOT}/results'
 QUARANTINE_PATH = f'{ROOT}/data/quarantine/quality_failures'
 VALIDATED_PATH = f'{ROOT}/data/lake/quality_validated'
+# Extra CSV files with the same header, read together with RAW_FILE. Empty in normal runs;
+# jobs/bad_row_demo.py uses it to add rows typed by hand.
+EXTRA_INPUTS = []
 
 REQUIRED_COLUMNS = {
     'collision_id', 'crash_date', 'crash_time', 'borough', 'on_street_name',
@@ -123,7 +126,7 @@ def main():
     download_date, source_checksum = source_metadata()
     spark = SparkSession.builder.appName('part1_quality').getOrCreate()
     read_started = time.perf_counter()
-    raw = spark.read.option('mode', 'PERMISSIVE').csv(RAW_FILE, header=True)
+    raw = spark.read.option('mode', 'PERMISSIVE').csv([RAW_FILE, *EXTRA_INPUTS], header=True)
     raw = raw.toDF(*normalized_columns(raw.columns))
     missing_columns = sorted(REQUIRED_COLUMNS - set(raw.columns))
     total_rows = raw.count()

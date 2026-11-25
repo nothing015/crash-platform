@@ -22,6 +22,10 @@ record_container_stats() {
 ./scripts/start.sh
 record_container_stats part1
 
+# Rows typed by hand into data/demo/hand_rows.csv go through the quality rules; skipped if there are none
+./scripts/run_bad_row_demo.sh
+record_container_stats bad_row_check
+
 ./scripts/run_stream_quality.sh
 record_container_stats stream_quality
 
