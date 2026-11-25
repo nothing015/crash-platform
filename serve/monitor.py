@@ -59,6 +59,16 @@ function table(headers, rows) {
 function stat(label,value,cls='') {
   return '<article class="card"><div class="label">'+label+'</div><div class="value '+cls+'">'+value+'</div></article>';
 }
+function drawLagChart(points) {
+  const valid=points.filter(p=>Number.isFinite(Number(p.lag)));
+  if(valid.length<2)return '<div class="empty">Lag history appears here during a stream run.</div>';
+  const max=Math.max(1,...valid.map(p=>Number(p.lag)));
+  const coords=valid.map((p,i)=>(i*1000/(valid.length-1))+','+(90-Number(p.lag)*80/max)).join(' ');
+  return '<svg class="chart" viewBox="0 0 1000 120" role="img" aria-label="Consumer lag over time">'+
+    '<polyline points="'+coords+'" fill="none" stroke="#77bdfb" stroke-width="4"/>'+
+    '<text x="0" y="115" fill="#a9bdc4" font-size="18">Latest lag: '+number(valid[valid.length-1].lag)+
+    ' · peak observed: '+number(max)+'</text></svg>';
+}
 function drawChart(counts,total) {
   if (!total) return '<div class="empty">Run the quality pipeline to populate the chart.</div>';
   const colors={pass:'#47d7a0',alert:'#ffc857',fail:'#ff6b6b'};
@@ -67,16 +77,6 @@ function drawChart(counts,total) {
     const width=counts[key]/total*1000;
     if (width>0) parts+='<rect x="'+x+'" y="24" width="'+width+'" height="32" fill="'+colors[key]+'"><title>'+key+': '+counts[key]+'</title></rect>';
     x+=width;
-  }
-  function drawLagChart(points) {
-    const valid=points.filter(p=>Number.isFinite(Number(p.lag)));
-    if(valid.length<2)return '<div class="empty">Lag history appears here during a stream run.</div>';
-    const max=Math.max(1,...valid.map(p=>Number(p.lag)));
-    const coords=valid.map((p,i)=>(i*1000/(valid.length-1))+','+(90-Number(p.lag)*80/max)).join(' ');
-    return '<svg class="chart" viewBox="0 0 1000 120" role="img" aria-label="Consumer lag over time">'+
-      '<polyline points="'+coords+'" fill="none" stroke="#77bdfb" stroke-width="4"/>'+
-      '<text x="0" y="115" fill="#a9bdc4" font-size="18">Latest lag: '+number(valid[valid.length-1].lag)+
-      ' · peak observed: '+number(max)+'</text></svg>';
   }
   return '<svg class="chart" viewBox="0 0 1000 100" role="img" aria-label="Quality test pass, alert and fail counts">'+parts+
     '<text x="0" y="82" fill="#a9bdc4" font-size="24">'+counts.pass+' passed · '+counts.alert+
